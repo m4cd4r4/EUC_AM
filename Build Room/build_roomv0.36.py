@@ -3,11 +3,11 @@ from openpyxl import load_workbook, Workbook
 from datetime import datetime
 import os
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import simpledialog, ttk
 
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
-root.title("Store-Room 4.2")
+root.title("Perth EUC Assets ")
 root.geometry("800x600")
 
 # Load the workbook or create it if it doesn't exist
@@ -43,35 +43,13 @@ style.configure("Treeview", font=larger_font)
 # Custom dialog class for SAN input
 class SANInputDialog(simpledialog.Dialog):
     def body(self, master):
-        self.entry = ctk.CTkEntry(master, width=200, justify='center', font=("Helvetica", 16))
-        self.entry.pack(pady=10)
-        self.create_numpad(master)
+        self.entry = ttk.Entry(master)
+        self.entry.pack()
         return self.entry
 
-    def create_numpad(self, master):
-        numpad_frame = ctk.CTkFrame(master)
-        numpad_frame.pack(pady=10)
-        buttons = [
-            ('1', 0, 0), ('2', 0, 1), ('3', 0, 2),
-            ('4', 1, 0), ('5', 1, 1), ('6', 1, 2),
-            ('7', 2, 0), ('8', 2, 1), ('9', 2, 2),
-            ('Del', 3, 0), ('0', 3, 1), ('Enter', 3, 2)
-        ]
-        for btn_text, row, column in buttons:
-            action = lambda val=btn_text: self.on_numpad_click(val)
-            btn = ctk.CTkButton(numpad_frame, text=btn_text, command=action, width=10, height=2)
-            btn.grid(row=row, column=column)
-
-    def on_numpad_click(self, value):
-        if value == 'Del':
-            current = self.entry.get()
-            self.entry.delete(0, tk.END)
-            self.entry.insert(0, current[:-1])
-        elif value == 'Enter':
-            self.result = self.entry.get()
-            self.destroy()
-        else:
-            self.entry.insert(tk.END, value)
+    def apply(self):
+        san_input = self.entry.get()
+        self.result = "SAN" + san_input
 
 # Function to show SAN input dialog
 def show_san_input():
@@ -113,26 +91,33 @@ def update_count(operation):
     if selected_item:
         try:
             input_value = int(entry_value.get())
-            item_sheet = workbook[current_sheets[0]]  # Get the current item sheet
-            log_sheet = workbook[current_sheets[1]]  # Get the current log sheet
+            item_sheet = workbook[current_sheets[0]]
+            log_sheet = workbook[current_sheets[1]]
+
+            # Check if the item is a laptop or mini-pc
+            san_number = ""
+            if 'laptop' in selected_item.lower() or 'mini-pc' in selected_item.lower():
+                san_number = show_san_input()
 
             # Find the row for the selected item
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
+                    # Update LastCount with the former NewCount
+                    row[1].value = row[2].value or 0
+
+                    # Update NewCount based on the operation
                     if operation == 'add':
-                        row[2].value = (row[2].value or 0) + input_value
+                        row[2].value = row[1].value + input_value
                     elif operation == 'subtract':
-                        row[2].value = (row[2].value or 0) - input_value
-                        san_number = show_san_input()
-                        target_sheet = log_sheet
-                        log_change(selected_item, f"{operation.capitalize()} {input_value}", target_sheet, san_number)
+                        row[2].value = row[1].value - input_value
+
+                    log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet, san_number)
                     break
 
             workbook.save(workbook_path)
             update_treeview()
         except ValueError as e:
             print(f"Invalid input for count update: {e}")
-
 
 # Create a frame to hold the widgets using CustomTkinter
 frame = ctk.CTkFrame(root)
