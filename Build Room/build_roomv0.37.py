@@ -85,7 +85,6 @@ def switch_sheets(sheet_type):
     update_treeview()
     update_log_view()
 
-# Function to update counts in the spreadsheet
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
     if selected_item:
@@ -95,9 +94,10 @@ def update_count(operation):
             log_sheet = workbook[current_sheets[1]]
 
             # Check if the item is a laptop or mini-pc
-            san_number = ""
-            if 'laptop' in selected_item.lower() or 'Desktop Mini' in selected_item.lower():
-                san_number = show_san_input()
+            if 'laptop' in selected_item.lower() or 'mini-pc' in selected_item.lower():
+                for _ in range(input_value):
+                    san_number = show_san_input()
+                    log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
 
             # Find the row for the selected item
             for row in item_sheet.iter_rows(min_row=2):
@@ -110,14 +110,13 @@ def update_count(operation):
                         row[2].value = row[1].value + input_value
                     elif operation == 'subtract':
                         row[2].value = row[1].value - input_value
-
-                    log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet, san_number)
                     break
 
             workbook.save(workbook_path)
             update_treeview()
         except ValueError as e:
             print(f"Invalid input for count update: {e}")
+
 
 # Create a frame to hold the widgets using CustomTkinter
 frame = ctk.CTkFrame(root)
