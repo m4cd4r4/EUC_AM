@@ -5,12 +5,6 @@ import os
 import tkinter as tk
 from tkinter import simpledialog, ttk
 
-def switch_sheets(sheet_type):
-    global current_sheets
-    current_sheets = sheets[sheet_type]
-    update_treeview()
-    update_log_view()
-
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
 root.title("Perth EUC Assets")
@@ -71,7 +65,6 @@ def show_san_input():
         else:
             tk.messagebox.showerror("Error", "Please enter a SAN with at least 5 characters.")
 
-
 # Function to update the Treeview widget with the spreadsheet data
 def update_treeview():
     tree.delete(*tree.get_children())  # Clear the existing treeview entries
@@ -85,7 +78,7 @@ def log_change(item, action, target_sheet, san_number=""):
     workbook.save(workbook_path)
     update_log_view()
 
-# Function to update the log view with the 5 most recent changes in ascending order
+# Function to update the log view with the changes in ascending order
 def update_log_view():
     log_view.delete(*log_view.get_children())  # Clear existing entries
     log_sheet = workbook[current_sheets[1]]
@@ -99,8 +92,15 @@ def update_log_view():
             return datetime.min  # Use a default datetime value for non-datetime objects
 
     sorted_rows = sorted(all_rows, key=lambda r: get_datetime(r[0]))
-    for row in sorted_rows[-5:]:
-        log_view.insert('', 0, values=row)  # Inserting at index 0 to put the most recent at the top
+    for row in sorted_rows:
+        log_view.insert('', 'end', values=row)
+
+# Function to switch between original and backup sheets
+def switch_sheets(sheet_type):
+    global current_sheets
+    current_sheets = sheets[sheet_type]
+    update_treeview()
+    update_log_view()
 
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
@@ -136,7 +136,6 @@ def update_count(operation):
             update_treeview()
         except ValueError as e:
             tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
-
 
 # Create a frame to hold the widgets using CustomTkinter
 frame = ctk.CTkFrame(root)
@@ -176,12 +175,12 @@ for col in columns:
     tree.column(col, anchor='w', width=200, stretch=False)
 tree.pack(expand=True, fill="both", padx=10, pady=20)
 
-# Log view for displaying the 5 most recent changes with scrollbar
+# Log view for displaying the changes with scrollbar
 log_view_frame = ctk.CTkFrame(root)
-log_view_frame.pack(side=tk.BOTTOM, fill='x', padx=10, pady=10)
+log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
 
 log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
-log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", height=5, style="Treeview")
+log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview")
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='w')
     log_view.column(col, anchor='w', width=150, stretch=False)
@@ -191,7 +190,7 @@ scrollbar_log = ttk.Scrollbar(log_view_frame, orient="vertical", command=log_vie
 scrollbar_log.pack(side='right', fill='y')
 log_view.configure(yscrollcommand=scrollbar_log.set)
 
-log_view.pack(side='bottom', fill='x')
+log_view.pack(expand=True, fill='both')
 
 # Start the GUI event loop
 root.after(100, update_treeview)
