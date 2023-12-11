@@ -50,15 +50,21 @@ class SANInputDialog(simpledialog.Dialog):
     def apply(self):
         san_input = self.entry.get()
         if len(san_input) >= 5:  # Check for minimum 5 characters
-            self.result = san_input  # Removed "SAN" prefix to allow flexibility
+            self.result = san_input
         else:
             tk.messagebox.showerror("Error", "Please enter a SAN with at least 5 characters.")
             self.result = None
 
 # Function to show SAN input dialog
 def show_san_input():
-    dialog = SANInputDialog(root, "Enter SAN Number")
-    return dialog.result
+    while True:
+        dialog = SANInputDialog(root, "Enter SAN Number")
+        san_input = dialog.result
+        if san_input and len(san_input) >= 5:
+            return san_input
+        else:
+            tk.messagebox.showerror("Error", "Please enter a SAN with at least 5 characters.")
+
 
 # Function to update the Treeview widget with the spreadsheet data
 def update_treeview():
@@ -78,7 +84,15 @@ def update_log_view():
     log_view.delete(*log_view.get_children())  # Clear existing entries
     log_sheet = workbook[current_sheets[1]]
     all_rows = list(log_sheet.iter_rows(min_row=2, max_row=log_sheet.max_row, values_only=True))
-    sorted_rows = sorted(all_rows, key=lambda r: r[0] if r[0] else datetime.min)
+
+    # Convert all non-datetime values to a default datetime value for comparison
+    def get_datetime(value):
+        if isinstance(value, datetime):
+            return value
+        else:
+            return datetime.min  # Use a default datetime value for non-datetime objects
+
+    sorted_rows = sorted(all_rows, key=lambda r: get_datetime(r[0]))
     for row in sorted_rows[-5:]:
         log_view.insert('', 0, values=row)  # Inserting at index 0 to put the most recent at the top
 
@@ -98,13 +112,13 @@ def update_count(operation):
             log_sheet = workbook[current_sheets[1]]
 
             # Check if the item is a laptop or mini-pc
-            if 'laptop' in selected_item.lower() or 'desktop mini' in selected_item.lower():  # Corrected case sensitivity
+            if 'laptop' in selected_item.lower() or 'desktop mini' in selected_item.lower():
                 for _ in range(input_value):
                     san_number = show_san_input()
-                    if san_number:  # Check if SAN number was entered
+                    if san_number:
                         log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
                     else:
-                        break  # Exit the loop if no SAN number is entered
+                        break
 
             # Find the row for the selected item
             for row in item_sheet.iter_rows(min_row=2):
