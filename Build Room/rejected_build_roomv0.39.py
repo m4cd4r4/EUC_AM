@@ -1,13 +1,17 @@
+
+"""Rejected - The toggle is too messy.
+More convenient for users to update both rooms manually"""
+
 import customtkinter as ctk
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 import os
 import tkinter as tk
-from tkinter import simpledialog, ttk
+from tkinter import simpledialog, ttk, messagebox
 
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
-root.title("Perth EUC Assets ")
+root.title("Perth EUC Assets")
 root.geometry("800x600")
 
 # Load the workbook or create it if it doesn't exist
@@ -20,10 +24,12 @@ else:
     workbook.create_sheet('4.2_Timestamps')
     workbook.create_sheet('BR_Items')
     workbook.create_sheet('BR_Timestamps')
+    workbook.create_sheet('SANs In Stock')  # Added SANs In Stock sheet
     workbook['4.2_Items'].append(["Item", "LastCount", "NewCount"])
     workbook['4.2_Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['BR_Items'].append(["Item", "LastCount", "NewCount"])
     workbook['BR_Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
+    workbook['SANs In Stock'].append(["Timestamp", "Item", "Action", "SAN Number"])  # Header for SANs In Stock
     workbook.save(workbook_path)
 
 # Sheets reference
@@ -49,7 +55,11 @@ class SANInputDialog(simpledialog.Dialog):
 
     def apply(self):
         san_input = self.entry.get()
-        self.result = "SAN" + san_input
+        if san_input.isdigit() and len(san_input) >= 4:
+            self.result = "SAN" + san_input
+        else:
+            self.result = None
+            messagebox.showerror("Error", "Please enter a numeric SAN of at least 4 digits.")
 
 # Function to show SAN input dialog
 def show_san_input():
@@ -64,8 +74,15 @@ def update_treeview():
 
 # Function to log the changes to the log sheet and update the log view
 def log_change(item, action, target_sheet, san_number=""):
+    action = action.replace("Add", "In").replace("Subtract", "Out")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     target_sheet.append([timestamp, item, action, san_number])
+
+    # Log to "SANs In Stock" if SAN number is provided
+    if san_number:
+        san_stock_sheet = workbook['SANs In Stock']
+        san_stock_sheet.append([timestamp, item, action, san_number])
+
     workbook.save(workbook_path)
     update_log_view()
 
@@ -85,6 +102,15 @@ def switch_sheets(sheet_type):
     update_treeview()
     update_log_view()
 
+# Global variable for toggle state
+toggle_state = True
+
+# Function to handle toggle switch
+def toggle_switch():
+    global toggle_state
+    toggle_state = not toggle_state
+
+# Function to update counts in the spreadsheet
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
     if selected_item:
@@ -93,30 +119,34 @@ def update_count(operation):
             item_sheet = workbook[current_sheets[0]]
             log_sheet = workbook[current_sheets[1]]
 
-            # Check if the item is a laptop or mini-pc
-            if 'laptop' in selected_item.lower() or 'Desktop Mini' in selected_item.lower():
+            # Check for specific items and log SAN number
+            if any(keyword in selected_item.lower() for keyword in ['laptop', 'mini-pc', 'desktop mini']):
                 for _ in range(input_value):
                     san_number = show_san_input()
-                    log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
+                    if san_number:
+                        log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
 
-            # Find the row for the selected item
+            # Update item sheet and handle room transfer
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
-                    # Update LastCount with the former NewCount
                     row[1].value = row[2].value or 0
-
-                    # Update NewCount based on the operation
                     if operation == 'add':
                         row[2].value = row[1].value + input_value
                     elif operation == 'subtract':
                         row[2].value = row[1].value - input_value
+                        if toggle_state:
+                            # Add to the other room if toggle is ON
+                            other_room_sheet = workbook[sheets['backup' if current_sheets == sheets['original'] else 'original'][0]]
+                            for other_row in other_room_sheet.iter_rows(min_row=2):
+                                if other_row[0].value == selected_item:
+                                    other_row[2].value = other_row[2].value + input_value
+                                    break
                     break
 
             workbook.save(workbook_path)
             update_treeview()
         except ValueError as e:
             print(f"Invalid input for count update: {e}")
-
 
 # Create a frame to hold the widgets using CustomTkinter
 frame = ctk.CTkFrame(root)
@@ -147,6 +177,11 @@ entry_value.pack(side='left')
 # Add button
 button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
 button_add.pack(side='left', padx=5)
+
+# Toggle button for auto room transfer
+toggle_button = ctk.CTkSwitch(entry_frame, text="Auto Room Transfer", command=toggle_switch)
+toggle_button.pack(side='right', padx=5)
+toggle_button.select()  # Set to ON by default
 
 # Treeview for item display
 columns = ("Item", "LastCount", "NewCount")

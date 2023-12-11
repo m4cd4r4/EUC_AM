@@ -7,7 +7,7 @@ from tkinter import simpledialog, ttk
 
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
-root.title("Perth EUC Assets ")
+root.title("Perth EUC Assets")
 root.geometry("800x600")
 
 # Load the workbook or create it if it doesn't exist
@@ -49,7 +49,11 @@ class SANInputDialog(simpledialog.Dialog):
 
     def apply(self):
         san_input = self.entry.get()
-        self.result = "SAN" + san_input
+        if len(san_input) >= 5:  # Check for minimum 5 characters
+            self.result = "SAN" + san_input
+        else:
+            tk.messagebox.showerror("Error", "Please enter a SAN with at least 5 characters.")
+            self.result = None
 
 # Function to show SAN input dialog
 def show_san_input():
@@ -117,7 +121,6 @@ def update_count(operation):
         except ValueError as e:
             print(f"Invalid input for count update: {e}")
 
-
 # Create a frame to hold the widgets using CustomTkinter
 frame = ctk.CTkFrame(root)
 frame.pack(padx=10, pady=10, fill='both', expand=True)
@@ -130,7 +133,7 @@ entry_frame.pack(pady=10)
 button_width = 50  # Reduced width by 66%
 
 # Sheet switch buttons
-button_1 = ctk.CTkButton(entry_frame, text="4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
+button_1 = ctk.CTkButton(entry_frame, text="B3-4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
 button_1.pack(side='left', padx=5)
 
 button_2 = ctk.CTkButton(entry_frame, text="BR", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 16))
@@ -148,12 +151,18 @@ entry_value.pack(side='left')
 button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
 button_add.pack(side='left', padx=5)
 
-# Treeview for item display
+# Treeview for item display with scrollbar
 columns = ("Item", "LastCount", "NewCount")
 tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode='browse', height=8, style="Treeview")
 for col in columns:
-    tree.heading(col, text=col, anchor=tk.W)
-    tree.column(col, anchor=tk.W, width=200, stretch=False)
+    tree.heading(col, text=col, anchor='w')  # Corrected anchor parameter
+    tree.column(col, anchor='w', width=200, stretch=False)
+
+# Scrollbar for the Treeview
+scrollbar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+scrollbar.pack(side='right', fill='y')
+tree.configure(yscrollcommand=scrollbar.set)
+
 tree.pack(expand=True, fill="both", padx=10, pady=20)
 tree.bind('<ButtonRelease-1>', lambda e: entry_value.focus())
 
@@ -164,8 +173,8 @@ log_view_frame.pack(side=tk.BOTTOM, fill='x', padx=10, pady=10)
 log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
 log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", height=5, style="Treeview")
 for col in log_view_columns:
-    log_view.heading(col, text=col, anchor=tk.W)
-    log_view.column(col, anchor=tk.W, width=150, stretch=False)
+    log_view.heading(col, text=col, anchor='w')
+    log_view.column(col, anchor='w', width=150, stretch=False)
 log_view.pack(side='bottom', fill='x')
 
 # Start the GUI event loop

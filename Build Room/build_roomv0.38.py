@@ -40,7 +40,6 @@ style = ttk.Style()
 larger_font = ('Helvetica', 12)  # Increase font size by 50%
 style.configure("Treeview", font=larger_font)
 
-# Custom dialog class for SAN input
 class SANInputDialog(simpledialog.Dialog):
     def body(self, master):
         self.entry = ttk.Entry(master)
@@ -49,7 +48,12 @@ class SANInputDialog(simpledialog.Dialog):
 
     def apply(self):
         san_input = self.entry.get()
-        self.result = "SAN" + san_input
+        if san_input.isdigit() and len(san_input) >= 4:
+            self.result = "SAN" + san_input
+        else:
+            self.result = None
+            tk.messagebox.showerror("Error", "Please enter a numeric SAN of at least 4 digits.")
+
 
 # Function to show SAN input dialog
 def show_san_input():
@@ -62,12 +66,17 @@ def update_treeview():
     for row in workbook[current_sheets[0]].iter_rows(min_row=2, values_only=True):
         tree.insert('', 'end', values=row)
 
-# Function to log the changes to the log sheet and update the log view
 def log_change(item, action, target_sheet, san_number=""):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     target_sheet.append([timestamp, item, action, san_number])
+
+    # Log to "SANs In Stock" if SAN number is provided
+    if san_number:
+        san_stock_sheet = workbook['SANs In Stock']
+        san_stock_sheet.append([timestamp, item, action, san_number])
+
     workbook.save(workbook_path)
-    update_log_view()
+
 
 # Function to update the log view with the 5 most recent changes in ascending order
 def update_log_view():
@@ -93,19 +102,17 @@ def update_count(operation):
             item_sheet = workbook[current_sheets[0]]
             log_sheet = workbook[current_sheets[1]]
 
-            # Check if the item is a laptop or mini-pc
-            if 'laptop' in selected_item.lower() or 'Desktop Mini' in selected_item.lower():
+            # Trigger SAN input for laptop, mini-pc, or desktop mini
+            if any(keyword in selected_item.lower() for keyword in ['laptop', 'mini-pc', 'desktop mini']):
                 for _ in range(input_value):
                     san_number = show_san_input()
-                    log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
+                    if san_number:
+                        log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
 
-            # Find the row for the selected item
+            # Update the item sheet
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
-                    # Update LastCount with the former NewCount
                     row[1].value = row[2].value or 0
-
-                    # Update NewCount based on the operation
                     if operation == 'add':
                         row[2].value = row[1].value + input_value
                     elif operation == 'subtract':
