@@ -1,9 +1,10 @@
 import customtkinter as ctk
-from openpyxl import load_workbook, Workbook
-from datetime import datetime
 import os
 import tkinter as tk
 from tkinter import simpledialog, ttk
+from openpyxl import load_workbook, Workbook
+from datetime import datetime
+import subprocess  # Import subprocess for non-Windows systems
 
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
@@ -64,6 +65,52 @@ def show_san_input():
             return san_input
         else:
             tk.messagebox.showerror("Error", "Please enter a valid SAN with at least 5 characters.")
+
+# Function to open the spreadsheet
+def open_spreadsheet():
+    try:
+        if os.name == 'nt':  # Windows
+            os.startfile(workbook_path)
+        else:  # macOS, Linux, etc.
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, workbook_path])
+    except Exception as e:
+        tk.messagebox.showerror("Error", f"Failed to open the spreadsheet: {e}")
+
+# Create a frame to hold the widgets using CustomTkinter
+frame = ctk.CTkFrame(root)
+frame.pack(padx=10, pady=10, fill='both', expand=True)
+
+# Entry field and buttons layout using CustomTkinter
+entry_frame = ctk.CTkFrame(frame)
+entry_frame.pack(pady=10)
+
+# Button width calculation
+button_width = 50  # Reduced width by 66%
+
+# Sheet switch buttons
+button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
+button_1.pack(side='left', padx=5)
+
+button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 16))
+button_2.pack(side='left', padx=5)
+
+# Subtract button
+button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 16))
+button_subtract.pack(side='left', padx=5)
+
+# Entry for count update
+entry_value = tk.Entry(entry_frame, font=("Helvetica", 16), justify='center', width=10)
+entry_value.pack(side='left')
+
+# Add button
+button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
+button_add.pack(side='left', padx=5)
+
+# .xlsx button
+xlsx_button = ctk.CTkButton(entry_frame, text=".xlsx", command=open_spreadsheet, width=button_width, font=("Helvetica", 16))
+xlsx_button.pack(side='left', padx=5)
+
 
 # Function to update the Treeview widget with the spreadsheet data
 def update_treeview():
@@ -139,36 +186,6 @@ def update_count(operation):
         except ValueError as e:
             tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
 
-
-# Create a frame to hold the widgets using CustomTkinter
-frame = ctk.CTkFrame(root)
-frame.pack(padx=10, pady=10, fill='both', expand=True)
-
-# Entry field and buttons layout using CustomTkinter
-entry_frame = ctk.CTkFrame(frame)
-entry_frame.pack(pady=10)
-
-# Button width calculation
-button_width = 50  # Reduced width by 66%
-
-# Sheet switch buttons
-button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
-button_1.pack(side='left', padx=5)
-
-button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 16))
-button_2.pack(side='left', padx=5)
-
-# Subtract button
-button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 16))
-button_subtract.pack(side='left', padx=5)
-
-# Entry for count update
-entry_value = tk.Entry(entry_frame, font=("Helvetica", 16), justify='center', width=10)
-entry_value.pack(side='left')
-
-# Add button
-button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
-button_add.pack(side='left', padx=5)
 
 # Treeview for item display
 columns = ("Item", "LastCount", "NewCount")
