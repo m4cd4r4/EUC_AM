@@ -9,7 +9,7 @@ import subprocess  # Import subprocess for non-Windows systems
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("800x600")
+root.geometry("600x600")
 
 # Load the workbook or create it if it doesn't exist
 workbook_path = 'EUC_Perth_Assets.xlsx'
@@ -26,12 +26,12 @@ else:
     workbook.create_sheet('All_SANs')  # Sheet 7
     # Initialize headers
     workbook['4.2 Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['4.2 Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])  # Corrected sheet name
+    workbook['4.2 Timestamps'].append(["Item", "Action", "SAN Number", "Time"])  # Corrected sheet name
     workbook['BR Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['BR Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])  # Adjusted order
+    workbook['BR Timestamps'].append(["Item", "Action", "SAN Number", "Time"])  # Adjusted order
     workbook['Project Designated Items'].append(["Item", "LastCount", "NewCount"])  # Modify as needed
-    workbook['Project Designated Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])  # Adjusted order
-    workbook['All SANs'].append(["Item", "SAN Number", "Timestamp"])  # Adjusted order
+    workbook['Project Designated Timestamps'].append(["Item", "Action", "SAN Number", "Time"])  # Adjusted order
+    workbook['All SANs'].append(["Item", "SAN Number", "Time"])  # Adjusted order
 
 
 # Sheets reference
@@ -77,8 +77,7 @@ def show_san_input():
         san_input = dialog.result
         if san_input and len(san_input) >= 8:
             return san_input
-        else:
-            tk.messagebox.showerror("Error", "Please enter a valid SAN with at least 5 characters.")
+
 
 # Function to open the spreadsheet
 def open_spreadsheet():
@@ -103,23 +102,23 @@ entry_frame.pack(pady=10)
 button_width = 50  # Reduced width by 66%
 
 # Sheet switch buttons
-button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
+button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 14))
 button_1.pack(side='left', padx=(10, 5))  # Adjusted left padding for a tasteful close position
 
 
-button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 16))
+button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 14))
 button_2.pack(side='left', padx=5)
 
 # Subtract button
-button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 16))
+button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 14))
 button_subtract.pack(side='left', padx=5)
 
 # Entry for count update
-entry_value = tk.Entry(entry_frame, font=("Helvetica", 16), justify='center', width=10)
+entry_value = tk.Entry(entry_frame, font=("Helvetica", 14), justify='center', width=4)
 entry_value.pack(side='left')
 
 # Add button
-button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
+button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 14, "bold"))
 button_add.pack(side='left', padx=5)
 
 # .xlsx button
@@ -136,8 +135,8 @@ def update_treeview():
 # Function to log the changes to the log sheet and update the log view
 def log_change(item, action, target_sheet, san_number=""):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if target_sheet.title in ['BR Timestamps', 'Project Designated Timestamps']:
-        # Append data in the new order for BR_Timestamps and In_Transit_Timestamps
+    if target_sheet.title in ['4.2 TImestamps', 'BR Timestamps', 'Project Designated Timestamps']:
+        # Append data in the new order for BR Timestamps and Project Designated Timestamps
         target_sheet.append([item, action, san_number, timestamp])
     elif target_sheet.title == 'All SANs':
         # Append data in the new order for All_SANs
@@ -146,6 +145,15 @@ def log_change(item, action, target_sheet, san_number=""):
         # For other sheets, keep the original order
         target_sheet.append([item, action, san_number, timestamp])
     
+
+    # Debugging print statement
+    print(f"Logging change: {item}, {action}, {san_number}")
+
+    # # Update the All SANs sheet if applicable
+    # if san_number:
+    #     update_all_sans_sheet(item, san_number, 'add' if 'add' in action.lower() else 'subtract')
+
+
     workbook.save(workbook_path)
     update_log_view()
 
@@ -162,7 +170,22 @@ def update_log_view():
 
     sorted_rows = sorted(all_rows, key=lambda r: get_datetime(r[0]), reverse=True)
     for row in sorted_rows:
-        log_view.insert('', 'end', values=row)
+        log_view.insert('', '0', values=row)
+
+
+# Function to update the "All SANs" sheet
+def update_all_sans_sheet(item, san_number, action):
+    all_sans_sheet = workbook['All SANs']
+    # Debugging print statement
+    print(f"Updating All SANs sheet: {item}, {san_number}, {action}")
+    if action == 'add':
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        all_sans_sheet.append([item, san_number, timestamp])
+    elif action == 'subtract':
+        for row in all_sans_sheet.iter_rows(min_row=2):
+            if row[0].value == item and row[1].value == san_number:
+                all_sans_sheet.delete_rows(row[0].row)
+                break
 
 
 # Function to switch between original and backup sheets
@@ -197,6 +220,49 @@ def update_count(operation):
                             san_number = show_san_input()
                             if san_number:
                                 log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
+                                # Ensure update_all_sans_sheet is called here to avoid duplication
+                                update_all_sans_sheet(selected_item, san_number, operation)
+                            else:
+                                break
+                    else:
+                        # Log change for items without a SAN number
+                        log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet)
+
+                    break  # Exit the loop once the item is found and updated
+
+            workbook.save(workbook_path)
+            update_treeview()
+        except ValueError as e:
+            tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
+
+
+# Function to update count and handle SAN items
+def update_count(operation):
+    selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
+    if selected_item:
+        try:
+            input_value = int(entry_value.get())
+            item_sheet = workbook[current_sheets[0]]
+            log_sheet = workbook[current_sheets[1]]
+
+            for row in item_sheet.iter_rows(min_row=2):
+                if row[0].value == selected_item:
+                    # Update LastCount with the current NewCount
+                    row[1].value = row[2].value or 0 
+
+                    # Update NewCount based on the operation
+                    if operation == 'add':
+                        row[2].value = (row[2].value or 0) + input_value
+                    elif operation == 'subtract':
+                        row[2].value = max((row[2].value or 0) - input_value, 0)
+
+                    # Log change, with SAN number for specific items
+                    if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
+                        for _ in range(input_value):
+                            san_number = show_san_input()
+                            if san_number:
+                                log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
+                                update_all_sans_sheet(selected_item, san_number, operation)
                             else:
                                 break
                     else:
