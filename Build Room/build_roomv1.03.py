@@ -23,7 +23,7 @@ else:
     workbook.create_sheet('BR Timestamps')
     workbook.create_sheet('Project Designated Items')  # Sheet 5
     workbook.create_sheet('Project Designated Timestamps')  # Sheet 6
-    workbook.create_sheet('All_SANs')  # Sheet 7
+    workbook.create_sheet('All SANs')  # Sheet 7
     # Initialize headers
     workbook['4.2 Items'].append(["Item", "LastCount", "NewCount"])
     workbook['4.2 Timestamps'].append(["Item", "Action", "SAN Number", "Time"])  # Corrected sheet name
@@ -135,14 +135,15 @@ def update_treeview():
 # Function to log the changes to the log sheet and update the log view
 def log_change(item, action, target_sheet, san_number=""):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if target_sheet.title in ['4.2 TImestamps', 'BR Timestamps', 'Project Designated Timestamps']:
-        # Append data in the new order for BR Timestamps and Project Designated Timestamps
+    if target_sheet.title in ['4.2 Timestamps', 'BR Timestamps']:
         target_sheet.append([item, action, san_number, timestamp])
+        # Check if SAN number is present and append data to "All SANs" sheet
+        if san_number:
+            all_sans_sheet = workbook['All SANs']
+            all_sans_sheet.append([item, san_number, timestamp])
     elif target_sheet.title == 'All SANs':
-        # Append data in the new order for All_SANs
         target_sheet.append([item, san_number, timestamp])
     else:
-        # For other sheets, keep the original order
         target_sheet.append([item, action, san_number, timestamp])
     
 
@@ -195,46 +196,6 @@ def switch_sheets(sheet_type):
     update_treeview()
     update_log_view()
 
-def update_count(operation):
-    selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
-    if selected_item:
-        try:
-            input_value = int(entry_value.get())
-            item_sheet = workbook[current_sheets[0]]
-            log_sheet = workbook[current_sheets[1]]
-
-            for row in item_sheet.iter_rows(min_row=2):
-                if row[0].value == selected_item:
-                    # Update LastCount with the current NewCount
-                    row[1].value = row[2].value or 0 
-
-                    # Update NewCount based on the operation
-                    if operation == 'add':
-                        row[2].value = (row[2].value or 0) + input_value
-                    elif operation == 'subtract':
-                        row[2].value = max((row[2].value or 0) - input_value, 0)
-
-                    # Log change, with SAN number for specific items
-                    if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
-                        for _ in range(input_value):
-                            san_number = show_san_input()
-                            if san_number:
-                                log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
-                                # Ensure update_all_sans_sheet is called here to avoid duplication
-                                update_all_sans_sheet(selected_item, san_number, operation)
-                            else:
-                                break
-                    else:
-                        # Log change for items without a SAN number
-                        log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet)
-
-                    break  # Exit the loop once the item is found and updated
-
-            workbook.save(workbook_path)
-            update_treeview()
-        except ValueError as e:
-            tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
-
 
 # Function to update count and handle SAN items
 def update_count(operation):
@@ -262,7 +223,7 @@ def update_count(operation):
                             san_number = show_san_input()
                             if san_number:
                                 log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
-                                update_all_sans_sheet(selected_item, san_number, operation)
+                                # Removed update_all_sans_sheet call to avoid duplication
                             else:
                                 break
                     else:
