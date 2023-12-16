@@ -9,7 +9,7 @@ import subprocess  # Import subprocess for non-Windows systems
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("600x600")
+root.geometry("600x750")
 
 # Load the workbook or create it if it doesn't exist
 workbook_path = 'EUC_Perth_Assets.xlsx'
