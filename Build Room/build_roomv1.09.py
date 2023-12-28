@@ -289,50 +289,43 @@ def update_count(operation):
             item_sheet = workbook[current_sheets[0]]
             timestamp_sheet = workbook[current_sheets[1]]
 
-            # Iterate over the item sheet to find and update the selected item
-            for row in item_sheet.iter_rows(min_row=2):
-                if row[0].value == selected_item:
-                    # Update the LastCount with the current NewCount
-                    row[1].value = row[2].value or 0
+            # Update the item sheet only after successful SAN input
+            updated_rows = []  # Keep track of the rows to be updated
 
-                    # Update the NewCount based on the operation
+            # Loop for getting SAN input and checking for uniqueness
+            for _ in range(abs(input_value)):
+                while True:  # Loop until a unique SAN is entered or the user cancels
+                    san_number = show_san_input()
+                    if san_number is None:  # If the input was cancelled, exit the update function immediately
+                        logging.info(f"SAN input was canceled for item {selected_item}.")
+                        return
+                    san_number = "SAN" + san_number  # Prepend "SAN"
+                    if is_san_unique(san_number):  # Check for uniqueness
+                        all_sans_sheet = workbook['All SANs']
+                        all_sans_sheet.append([selected_item, san_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                        # Log the change and break out of the while loop to process the next input
+                        log_change(selected_item, operation, san_number, timestamp_sheet)
+                        updated_rows.append(selected_item)  # Add the item to the list of items to update
+                        break
+                    else:
+                        tk.messagebox.showerror("Duplicate SAN", "This SAN number is already recorded in the system. Please reenter a unique SAN.")
+                        # The loop will continue, prompting the user again for a unique SAN
+
+            # Now, update the counts for the rows that had unique SANs entered
+            for row in item_sheet.iter_rows(min_row=2):
+                if row[0].value in updated_rows:
+                    row[1].value = row[2].value or 0
                     if operation == 'add':
                         row[2].value = (row[2].value or 0) + input_value
                     elif operation == 'subtract':
                         row[2].value = max((row[2].value or 0) - input_value, 0)
-
-
-        # For certain items, we may need to capture a SAN number
-        if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
-            # Prompt for and log a SAN number for each unit added or removed
-            for _ in range(abs(input_value)):
-                san_number = show_san_input()
-                if san_number:
-                    san_number = "SAN" + san_number  # Prepend "SAN"
-                    if is_san_unique(san_number):  # Check for uniqueness
-                        # Log the SAN number to the 'All SANs' sheet
-                        all_sans_sheet = workbook['All SANs']
-                        all_sans_sheet.append([san_number, selected_item, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-                    else:
-                        tk.messagebox.showerror("Duplicate SAN", "This SAN number is already recorded in the system. Please reenter a unique SAN.")
-                        continue  # Skip logging and allow the user to re-enter a unique SAN
-                    log_change(selected_item, operation, san_number, timestamp_sheet)
-                else:
-                    logging.info(f"SAN input was canceled for item {selected_item}.")
-                    break
-                    
-            else:
-                # This else clause corresponds to the for loop. It executes when no break has occurred, meaning the item was not found.
-                logging.warning(f"Selected item {selected_item} not found in sheet.")
-        else:
-            logging.info("No item selected in Treeview.")
 
     except ValueError as e:
         logging.error(f"Invalid input for count update: {e}")
         tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
 
     finally:
-        # Save the workbook and refresh the Treeview
+        # Save the workbook and refresh the Treeview only if the update was successful
         workbook.save(workbook_path)
         update_treeview()
 

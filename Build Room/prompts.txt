@@ -1,0 +1,7 @@
+
+Please see the following screenshot of what 
+tkinter app this code produces.
+
+Please analyse, debug & troubleshoot the 
+script to resolve the following issue:
+ 
