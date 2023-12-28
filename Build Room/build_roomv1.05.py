@@ -5,6 +5,10 @@ from tkinter import simpledialog, ttk
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 import subprocess  # Import subprocess for non-Windows systems
+import logging
+
+# Configure logging
+logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize Tkinter root with CustomTkinter
 root = ctk.CTk()
@@ -132,10 +136,15 @@ def update_treeview():
 
 # Function to log the changes to the log sheet and update the log view
 def log_change(item, action, target_sheet, san_number=""):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    target_sheet.append([timestamp, item, action, san_number])
-    workbook.save(workbook_path)
-    update_log_view()
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        target_sheet.append([timestamp, item, action, san_number])
+        workbook.save(workbook_path)
+        logging.info(f"Logged change: {timestamp}, {item}, {action}, {san_number}")
+    except Exception as e:
+        logging.error(f"Failed to log change: {e}")
+        tk.messagebox.showerror("Error", f"Failed to log change: {e}")
+
 
 def update_log_view():
     log_view.delete(*log_view.get_children())  # Clear existing entries
@@ -216,6 +225,8 @@ def update_count(operation):
                     elif operation == 'subtract':
                         row[2].value = max((row[2].value or 0) - input_value, 0)
 
+                    logging.info(f"Updating count for {selected_item} with operation {operation} and value {input_value}")
+                    
                     # Log change
                     if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
                         for _ in range(input_value):
@@ -228,6 +239,7 @@ def update_count(operation):
                         log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet)
                     break
     except ValueError as e:
+        logging.error(f"Invalid input for count update: {e}")
         tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
     finally:
         workbook.save(workbook_path)

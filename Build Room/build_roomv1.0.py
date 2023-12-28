@@ -119,11 +119,19 @@ def update_treeview():
         tree.insert('', 'end', values=row)
 
 # Function to log the changes to the log sheet and update the log view
-def log_change(item, action, target_sheet, san_number=""):
+def log_change(item, action, san_number="", timestamp_sheet=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    target_sheet.append([timestamp, item, action, san_number])
-    workbook.save(workbook_path)
-    update_log_view()
+    try:
+        # Ensure we have a valid sheet to write to, otherwise, log an error
+        if timestamp_sheet is not None:
+            timestamp_sheet.append([item, action, san_number, timestamp])
+            workbook.save(workbook_path)
+            logging.info(f"Logged change: Item: {item}, Action: {action}, SAN: {san_number}, Time: {timestamp}")
+        else:
+            logging.error(f"No timestamp sheet provided for logging.")
+    except Exception as e:
+        logging.error(f"Failed to log change: {e}")
+        tk.messagebox.showerror("Error", f"Failed to log change: {e}")
 
 def update_log_view():
     log_view.delete(*log_view.get_children())  # Clear existing entries
@@ -149,42 +157,43 @@ def switch_sheets(sheet_type):
     update_log_view()
 
 def update_count(operation):
-    selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
-    if selected_item:
-        try:
+    try:
+        selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
+        if selected_item:
             input_value = int(entry_value.get())
             item_sheet = workbook[current_sheets[0]]
-            log_sheet = workbook[current_sheets[1]]
+            timestamp_sheet = workbook[current_sheets[1]]  # Reference to the "4.2 Timestamps" or "BR Timestamps"
 
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
-                    # Update LastCount with the current NewCount
-                    row[1].value = row[2].value or 0 
+                    row[1].value = row[2].value or 0  # Update LastCount
 
-                    # Update NewCount based on the operation
                     if operation == 'add':
                         row[2].value = (row[2].value or 0) + input_value
                     elif operation == 'subtract':
                         row[2].value = max((row[2].value or 0) - input_value, 0)
 
-                    # Log change, with SAN number for specific items
-                    if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
-                        for _ in range(input_value):
+                    logging.info(f"Updating count for {selected_item} with operation {operation} and value {input_value}")
+                    
+                    # Log change to the "4.2 Timestamps" or "BR Timestamps" sheet
+                    log_change(selected_item, f"{operation.capitalize()} {input_value}", "", timestamp_sheet)
+
+                    if operation == 'add' and input_value > 0 or operation == 'subtract' and input_value > 0:
+                        # Log SAN for every change if needed
+                        for _ in range(abs(input_value)):
                             san_number = show_san_input()
                             if san_number:
-                                log_change(selected_item, f"{operation.capitalize()} 1", log_sheet, san_number)
+                                # Log change to the "All SANs" sheet
+                                log_change(selected_item, operation, san_number, workbook['All SANs'])
                             else:
                                 break
-                    else:
-                        # Log change for items without a SAN number
-                        log_change(selected_item, f"{operation.capitalize()} {input_value}", log_sheet)
-
-                    break  # Exit the loop once the item is found and updated
-
-            workbook.save(workbook_path)
-            update_treeview()
-        except ValueError as e:
-            tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
+                    break
+    except ValueError as e:
+        logging.error(f"Invalid input for count update: {e}")
+        tk.messagebox.showerror("Error", f"Invalid input for count update: {e}")
+    finally:
+        workbook.save(workbook_path)
+        update_treeview()
 
 
 # Treeview for item display
