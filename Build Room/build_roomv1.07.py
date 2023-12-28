@@ -250,7 +250,6 @@ for col in columns:
     tree.column(col, anchor='w', width=200, stretch=False)
 tree.pack(expand=True, fill="both", padx=10, pady=20)
 
-# Log view for displaying the changes with scrollbar
 log_view_frame = ctk.CTkFrame(root)
 log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
 
@@ -266,6 +265,10 @@ scrollbar_log.pack(side='right', fill='y')
 log_view.configure(yscrollcommand=scrollbar_log.set)
 
 log_view.pack(expand=True, fill='both')
+
+# Initialize the Treeview and Log View with data
+root.after(100, update_treeview)
+update_log_view()  # Populate the log view when the application starts
 
 # Start the GUI event loop
 root.after(100, update_treeview)
