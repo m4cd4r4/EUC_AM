@@ -1,4 +1,4 @@
-# Not accepting valid SAN numbers - "Please enter a valid SAN..."
+# Add shading to data in logview & treeview, for improved readability
 # Build Room\build_roomv1.07.py
 # Author: Macdara o Murchu
 
@@ -31,7 +31,7 @@ logging.config.fileConfig('logging.conf')
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("800x600")
+root.geometry("550x600")
 
 # Load the workbook or create it if it doesn't exist
 script_directory = Path(__file__).parent  # Get the parent directory of the script
@@ -78,34 +78,61 @@ def validate_input(P):
 # Configure the Tkinter validation command for numbers only entry
 vcmd = (root.register(validate_input), '%P')
 
+
 # Custom dialog class for SAN input
-class SANInputDialog(simpledialog.Dialog):
-    def body(self, master):
-        self.entry = ttk.Entry(master, validate="key", validatecommand=vcmd)
-        self.entry.pack()
-        return self.entry
+class SANInputDialog(tk.Toplevel):
+    def __init__(self, parent, title=None):
+        super().__init__(parent)
+        self.transient(parent)
+        self.title(title)
+        self.parent = parent
+        self.result = None
+        self.create_widgets()
+        self.grab_set()
 
-    def apply(self):
-        # Here, we're assuming that the SAN must be numeric only
+        # Center the dialog on the parent window
+        self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
+
+        self.wait_window(self)
+
+    def create_widgets(self):
+        self.entry = ttk.Entry(self, validate="key", validatecommand=vcmd)
+        self.entry.pack(padx=5, pady=5)
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=5)
+
+        submit_button = ttk.Button(button_frame, text="Submit", command=self.on_submit)
+        submit_button.pack(side='left', padx=5)
+
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        cancel_button.pack(side='left', padx=5)
+
+    def on_submit(self):
         san_input = self.entry.get()
-        if len(san_input) >= 5:  # Assuming the SAN has at least 5 digits
+        if san_input and len(san_input) >= 5 and len(san_input) <= 6:
             self.result = san_input
+            self.destroy()
         else:
-            tk.messagebox.showerror("Error", "Please enter a valid SAN with at least 5 characters.")
-            self.result = None
+            tk.messagebox.showerror("Error", "Please enter a valid SAN with at least 5 characters.", parent=self)
+            self.entry.focus_set()
+
+    def on_cancel(self):
+        self.result = None
+        self.destroy()
 
 
-# Function to show SAN input dialog
+# Define the function just after the SANInputDialog class
+def is_san_unique(san_number):
+    all_sans_sheet = workbook['All SANs']
+    for row in all_sans_sheet.iter_rows(min_row=2, values_only=True):
+        if san_number == row[1]:  # Assuming the SAN Number is in the second column
+            return False
+    return True
+
 def show_san_input():
-    dialog_closed = False
-    while not dialog_closed:
-        dialog = SANInputDialog(root, "Enter SAN Number")
-        san_input = dialog.result
-        if san_input and len(san_input) >= 8:
-            return san_input
-        else:
-            tk.messagebox.showerror("Error", "Please enter a valid SAN with at least 5 characters.")
-        dialog_closed = True
+    dialog = SANInputDialog(root, "Enter SAN Number")
+    return dialog.result
+
 
 # Custom validation function to allow only numeric input
 def validate_input(P):
@@ -167,16 +194,36 @@ def update_treeview():
     # Open the workbook again to read the latest data
     workbook = load_workbook(workbook_path)
     item_sheet = workbook[current_sheets[0]]
+    
+    # Track the row count to alternate row colors
+    row_count = 0
+    
     for row in item_sheet.iter_rows(min_row=2, values_only=True):
         if row[0] is not None:  # Ensure that the first cell in the row is not empty
-            tree.insert('', 'end', values=row)
+            # Determine the background color based on the row count
+            if row_count % 2 == 0:
+                bg_color = 'white'  # Use white for even rows
+            else:
+                bg_color = '#f0f0f0'  # Use a light gray color for odd rows
+            
+            # Insert the row with the specified background color
+            tree.insert('', 'end', values=row, tags=('oddrow' if row_count % 2 == 1 else 'evenrow'))
+            
+            # Apply the background color to the inserted row
+            tree.tag_configure('oddrow', background='#f0f0f0')
+            tree.tag_configure('evenrow', background='white')
+            
+            row_count += 1
 
 # Function to log the changes to the log sheet and update the log view
 def log_change(item, action, san_number="", timestamp_sheet=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         if timestamp_sheet is not None:
-            # Assuming the order of columns in "All SANs" sheet is: Item, Action, SAN Number, Time
+            # Prepend 'SAN' to the san_number if it's not empty and doesn't already start with 'SAN'
+            san_number = f"SAN{san_number}" if san_number and not san_number.startswith('SAN') else san_number
+
+            # Assuming the order of columns in the timestamp sheet is: Item, Action, SAN Number, Time
             timestamp_sheet.append([item, action, san_number, timestamp])
             workbook.save(workbook_path)
             logging.info(f"Logged change: Item: {item}, Action: {action}, SAN: {san_number}, Time: {timestamp}")
@@ -186,6 +233,7 @@ def log_change(item, action, san_number="", timestamp_sheet=None):
         logging.error(f"Failed to log change: {e}")
         tk.messagebox.showerror("Error", f"Failed to log change: {e}")
 
+# Function to update the Log View with sorted and reordered data
 def update_log_view():
     if 'log_view' in globals():
         log_view.delete(*log_view.get_children())  # Clear existing entries
@@ -194,20 +242,44 @@ def update_log_view():
         # Retrieve all rows from the log sheet, skipping the header
         all_rows = list(log_sheet.iter_rows(min_row=2, values_only=True))
         
-        # Sort the rows by the timestamp column in descending order
+        # Sort the rows by the timestamp column in descending order to display newest-first
         sorted_rows = sorted(all_rows, key=lambda r: r[0] or '', reverse=True)
-
-        # Insert the sorted rows into the Treeview
+        
+        # Track the row count to alternate row colors
+        row_count = 0
+        
+        # Insert the sorted rows into the Treeview with alternating row colors
         for row in sorted_rows:
             if row[0] is not None:  # Only insert rows with a timestamp
-                log_view.insert('', 'end', values=row)
-
+                # Determine the background color based on the row count
+                if row_count % 2 == 0:
+                    bg_color = 'white'  # Use white for even rows
+                else:
+                    bg_color = '#f0f0f0'  # Use a light gray color for odd rows
+                
+                # Insert the row with the specified background color
+                log_view.insert('', 'end', values=row, tags=('oddrow' if row_count % 2 == 1 else 'evenrow'))
+                
+                # Apply the background color to the inserted row
+                log_view.tag_configure('oddrow', background='#f0f0f0')
+                log_view.tag_configure('evenrow', background='white')
+                
+                row_count += 1
 # Function to switch between original and backup sheets
 def switch_sheets(sheet_type):
     global current_sheets
     current_sheets = sheets[sheet_type]
     update_treeview()
     update_log_view()
+
+# Function to check for SAN number uniqueness in 'All SANs' sheet
+def is_san_unique(san_number):
+    all_sans_sheet = workbook['All SANs']
+    for row in all_sans_sheet.iter_rows(min_row=2, values_only=True):
+        if san_number == row[1]:  # Assuming the SAN Number is in the second column
+            return False
+    return True
+
 
 def update_count(operation):
     try:
@@ -229,21 +301,26 @@ def update_count(operation):
                     elif operation == 'subtract':
                         row[2].value = max((row[2].value or 0) - input_value, 0)
 
-                    # Log the change to the timestamp sheet
-                    log_change(selected_item, f"{operation.capitalize()} {input_value}", "", timestamp_sheet)
 
-                    # For certain items, we may need to capture a SAN number
-                    if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
-                        # Prompt for and log a SAN number for each unit added or removed
-                        for _ in range(abs(input_value)):
-                            san_number = show_san_input()
-                            if san_number:
-                                # Log the SAN number to the timestamp sheet
-                                log_change(selected_item, operation, san_number, timestamp_sheet)
-                            else:
-                                logging.info(f"SAN input was canceled for item {selected_item}.")
-                                break
+        # For certain items, we may need to capture a SAN number
+        if any(keyword in selected_item.lower() for keyword in ['840', 'x360', 'desktop mini']):
+            # Prompt for and log a SAN number for each unit added or removed
+            for _ in range(abs(input_value)):
+                san_number = show_san_input()
+                if san_number:
+                    san_number = "SAN" + san_number  # Prepend "SAN"
+                    if is_san_unique(san_number):  # Check for uniqueness
+                        # Log the SAN number to the 'All SANs' sheet
+                        all_sans_sheet = workbook['All SANs']
+                        all_sans_sheet.append([san_number, selected_item, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                    else:
+                        tk.messagebox.showerror("Duplicate SAN", "This SAN number is already recorded in the system. Please reenter a unique SAN.")
+                        continue  # Skip logging and allow the user to re-enter a unique SAN
+                    log_change(selected_item, operation, san_number, timestamp_sheet)
+                else:
+                    logging.info(f"SAN input was canceled for item {selected_item}.")
                     break
+                    
             else:
                 # This else clause corresponds to the for loop. It executes when no break has occurred, meaning the item was not found.
                 logging.warning(f"Selected item {selected_item} not found in sheet.")
@@ -258,6 +335,7 @@ def update_count(operation):
         # Save the workbook and refresh the Treeview
         workbook.save(workbook_path)
         update_treeview()
+
 
 # Treeview for item display
 columns = ("Item", "LastCount", "NewCount")
@@ -290,19 +368,17 @@ def update_log_view():
     if 'log_view' in globals():
         log_view.delete(*log_view.get_children())  # Clear existing entries
         log_sheet = workbook[current_sheets[1]]
-
+        
         # Retrieve all rows from the log sheet, skipping the header
         all_rows = list(log_sheet.iter_rows(min_row=2, values_only=True))
-
-        # Sort the rows by the timestamp column in descending order
+        
+        # Sort the rows by the timestamp column in descending order to display newest-first
         sorted_rows = sorted(all_rows, key=lambda r: r[0] or '', reverse=True)
-
-        # Insert the sorted rows into the Treeview with reordered columns
+        
+        # Insert the sorted rows into the Treeview
         for row in sorted_rows:
             if row[0] is not None:  # Only insert rows with a timestamp
-                reordered_row = (row[3], row[0], row[1], row[2])  # Reordering the tuple if needed
-                log_view.insert('', 'end', values=reordered_row)
-
+                log_view.insert('', 'end', values=row)
 
 # Initialize the Treeview and Log View with data
 root.after(100, update_treeview)
