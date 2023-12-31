@@ -1,5 +1,8 @@
-# Only items with G8, G9 or G10 in their names should trigger the SAN Input fuction
-# If no SAN, update the count in the Items sheet
+# When the user subtracts an item, if the item has a SAN, 
+# then the item must be recorded in the All SANs sheet.
+# Currently, when the user subtracts items that have SANs, the script is detecting their 
+# presence in the sheet, and alerting the user that this SAN already exists.
+
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
 # 31.12.23
@@ -192,15 +195,28 @@ def update_count(operation):
             if any(g in selected_item for g in ["G8", "G9", "G10"]):
                 for _ in range(abs(input_value)):
                     san_number = show_san_input()
-                    if san_number is None:
+                    if san_number is None:  # User cancelled the input
                         return
                     san_number = "SAN" + san_number
-                    if san_number not in san_inputs and is_san_unique(san_number):
-                        san_inputs.append(san_number)
-                    else:
-                        continue
+                    if operation == 'add':
+                        if san_number not in san_inputs and is_san_unique(san_number):
+                            san_inputs.append(san_number)
+                        else:
+                            tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
+                    elif operation == 'subtract':
+                        if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
+                            san_inputs.append(san_number)
+                        else:
+                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
+                            continue
             for san in san_inputs:
-                all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                if operation == 'add':
+                    all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                elif operation == 'subtract':
+                    for row in all_sans_sheet.iter_rows(min_row=2):
+                        if row[1].value == san:
+                            all_sans_sheet.delete_rows(row[0].row)
+                            break
                 log_change(selected_item, operation, san, timestamp_sheet)
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
@@ -212,6 +228,10 @@ def update_count(operation):
             workbook.save(workbook_path)
             update_treeview()
             update_log_view()
+
+
+
+
 
 
 columns = ("Item", "LastCount", "NewCount")
