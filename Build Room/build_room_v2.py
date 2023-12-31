@@ -1,4 +1,4 @@
-# Fixed logic of incorrect SAN alert not followed by the SAN Input box
+# Add dark-mode
 
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
@@ -6,6 +6,7 @@
 
 import logging.config
 from pathlib import Path
+from tkinter import Menu
 import customtkinter as ctk
 import os
 import tkinter as tk
@@ -128,6 +129,39 @@ button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('
 button_add.pack(side='left', padx=5)
 xlsx_button = ctk.CTkButton(entry_frame, text=".xlsx", command=open_spreadsheet, width=button_width, font=("Helvetica", 16))
 xlsx_button.pack(side='left', padx=5)
+
+current_mode = "light"  # Global variable to track the current mode
+
+def toggle_theme():
+    global current_mode
+    print("Toggle theme called")
+    print(f"Current mode: {current_mode}")
+    new_mode = "dark" if current_mode == "light" else "light"
+    current_mode = new_mode  # Update the global variable
+    print(f"Switching to {new_mode} mode")
+    ctk.set_appearance_mode(new_mode)
+
+# Create a menu bar
+menu_bar = tk.Menu(root)
+root.config(menu=menu_bar)
+
+# Create a "File" menu
+file_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="File", menu=file_menu)
+
+# Add "Toggle Dark Mode" to the "File" menu
+file_menu.add_command(label="Toggle Dark Mode", command=toggle_theme)
+
+
+# def toggle_theme():
+#     print("Toggle theme called")  # Debugging print
+#     current_mode = ctk.get_appearance_mode()
+#     new_mode = "dark" if current_mode == "light" else "light"
+#     ctk.set_appearance_mode(new_mode)
+
+# toggle_theme_button = ctk.CTkButton(entry_frame, command=toggle_theme, width=20, height=20, fg_color="#000000", hover_color="#000000")
+# toggle_theme_button.pack(side='left', padx=5)
+
 
 def update_treeview():
     tree.delete(*tree.get_children())
