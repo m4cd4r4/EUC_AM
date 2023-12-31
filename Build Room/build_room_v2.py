@@ -1,4 +1,4 @@
-# order of columns is sorted
+# Column width in logview is slightly increased to view entire timestamp
 
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
@@ -247,7 +247,7 @@ log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
 log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=8)
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='w')
-    log_view.column(col, anchor='w', width=150, stretch=False)
+    log_view.column(col, anchor='w', width=170, stretch=False)
 
 scrollbar_log = ttk.Scrollbar(log_view_frame, orient="vertical", command=log_view.yview)
 scrollbar_log.pack(side='right', fill='y')
@@ -259,7 +259,3 @@ update_log_view()
 
 root.mainloop()
 
-
-# 4.2 Timestamps sheet is being appended in the order: Timesheet, Item, Action, SAN 
-# Labels are in the order: Item, Action, SAN NUmber, Time
-# Change the order in which the columns are appended to the sheet
