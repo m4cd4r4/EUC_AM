@@ -190,9 +190,10 @@ def update_count(operation):
             input_value = int(input_value)
             item_sheet = workbook[current_sheets[0]]
             timestamp_sheet = workbook[current_sheets[1]]
-            san_inputs = []
+            san_required = any(g in selected_item for g in ["G8", "G9", "G10"])
 
-            if any(g in selected_item for g in ["G8", "G9", "G10"]):
+            if san_required:
+                san_count = 0
                 for _ in range(abs(input_value)):
                     while True:
                         san_number = show_san_input()
@@ -201,37 +202,44 @@ def update_count(operation):
                         san_number = "SAN" + san_number
 
                         if operation == 'add':
-                            if san_number not in san_inputs and is_san_unique(san_number):
-                                san_inputs.append(san_number)
+                            if is_san_unique(san_number):
+                                all_sans_sheet.append([selected_item, san_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                                log_change(selected_item, operation, san_number, timestamp_sheet)
+                                san_count += 1
                                 break
                             else:
                                 tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
                         elif operation == 'subtract':
                             if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
-                                san_inputs.append(san_number)
+                                for row in all_sans_sheet.iter_rows(min_row=2):
+                                    if row[1].value == san_number:
+                                        all_sans_sheet.delete_rows(row[0].row)
+                                        log_change(selected_item, operation, san_number, timestamp_sheet)
+                                        san_count += 1
+                                        break
                                 break
                             else:
                                 tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
                                 continue
-            for san in san_inputs:
-                if operation == 'add':
-                    all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-                elif operation == 'subtract':
-                    for row in all_sans_sheet.iter_rows(min_row=2):
-                        if row[1].value == san:
-                            all_sans_sheet.delete_rows(row[0].row)
-                            break
-                log_change(selected_item, operation, san, timestamp_sheet)
+                input_value = san_count  # Adjust input_value to the number of valid SANs processed
+
+            # Adjust item counts
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
                     row[1].value = row[2].value or 0
                     if operation == 'add':
-                        row[2].value = (row[2].value or 0) + len(san_inputs) if san_inputs else (row[2].value or 0) + input_value
+                        row[2].value = (row[2].value or 0) + input_value
                     elif operation == 'subtract':
-                        row[2].value = max((row[2].value or 0) - len(san_inputs) if san_inputs else (row[2].value or 0) - input_value, 0)
+                        row[2].value = max((row[2].value or 0) - input_value, 0)
+
+            # Log the change for items not requiring SAN
+            if not san_required:
+                log_change(selected_item, operation, "", timestamp_sheet)
+
             workbook.save(workbook_path)
             update_treeview()
             update_log_view()
+
 
 
 
