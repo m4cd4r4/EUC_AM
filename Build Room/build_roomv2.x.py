@@ -1,5 +1,5 @@
-# order of columns is sorted
-
+# Reverting# Only items with G8, G9 or G10 in their names should trigger the SAN Input fuction
+# If no SAN, update the count in the Items sheet
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
 # 31.12.23
@@ -46,7 +46,7 @@ else:
     workbook['BR Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['Project Designated Items'].append(["Item", "LastCount", "NewCount"])
     workbook['Project Designated Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
-    workbook['All SANs'].append(["SAN Number", "Item", "Timestamp"])
+    workbook['All SANs'].append(["Item", "SAN Number", "Timestamp"])
     workbook.save(workbook_path)
 
 all_sans_sheet = workbook['All SANs']
@@ -153,7 +153,7 @@ def log_change(item, action, san_number="", timestamp_sheet=None):
             timestamp_sheet.append([timestamp, item, action, san_number])
             workbook.save(workbook_path)
             update_log_view()
-            logging.info(f"Logged change: Time: {timestamp}, Item: {item}, Action: {action}, SAN: {san_number}")
+            logging.info(f"Logged change: Item: {item}, Action: {action}, SAN: {san_number}, Time: {timestamp}")
         else:
             logging.error("No timestamp sheet provided for logging.")
     except Exception as e:
@@ -171,7 +171,6 @@ def update_log_view():
         log_view.delete(*log_view.get_children())
         log_sheet = workbook[current_sheets[1]]
         all_rows = list(log_sheet.iter_rows(min_row=2, values_only=True))
-        # Adjust the sorting to use the first column (timestamp)
         sorted_rows = sorted(all_rows, key=lambda r: datetime.strptime(r[0], "%Y-%m-%d %H:%M:%S") if r[0] else datetime.min, reverse=True)
         row_count = 0
         for row in sorted_rows:
@@ -180,7 +179,6 @@ def update_log_view():
                 log_view.tag_configure('oddrow', background='#f0f0f0')
                 log_view.tag_configure('evenrow', background='white')
                 row_count += 1
-
 
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
@@ -194,28 +192,15 @@ def update_count(operation):
             if any(g in selected_item for g in ["G8", "G9", "G10"]):
                 for _ in range(abs(input_value)):
                     san_number = show_san_input()
-                    if san_number is None:  # User cancelled the input
+                    if san_number is None:
                         return
                     san_number = "SAN" + san_number
-                    if operation == 'add':
-                        if san_number not in san_inputs and is_san_unique(san_number):
-                            san_inputs.append(san_number)
-                        else:
-                            tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
-                    elif operation == 'subtract':
-                        if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
-                            san_inputs.append(san_number)
-                        else:
-                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
-                            continue
+                    if san_number not in san_inputs and is_san_unique(san_number):
+                        san_inputs.append(san_number)
+                    else:
+                        continue
             for san in san_inputs:
-                if operation == 'add':
-                    all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-                elif operation == 'subtract':
-                    for row in all_sans_sheet.iter_rows(min_row=2):
-                        if row[1].value == san:
-                            all_sans_sheet.delete_rows(row[0].row)
-                            break
+                all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
                 log_change(selected_item, operation, san, timestamp_sheet)
             for row in item_sheet.iter_rows(min_row=2):
                 if row[0].value == selected_item:
@@ -227,10 +212,6 @@ def update_count(operation):
             workbook.save(workbook_path)
             update_treeview()
             update_log_view()
-
-
-
-
 
 
 columns = ("Item", "LastCount", "NewCount")
@@ -260,6 +241,6 @@ update_log_view()
 root.mainloop()
 
 
-# 4.2 Timestamps sheet is being appended in the order: Timesheet, Item, Action, SAN 
-# Labels are in the order: Item, Action, SAN NUmber, Time
-# Change the order in which the columns are appended to the sheet
+# 4.2 Timestamps sheet is being written in Timesheet, Item, Action, SAN 
+# Labels are in the order Item, Action, SAN NUmber, Time
+# Change either the label order (easy) or the order in which the columns are written to the sheet
