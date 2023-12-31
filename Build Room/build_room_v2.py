@@ -1,4 +1,4 @@
-# Column width in logview is slightly increased to view entire timestamp
+# Fixed logic of incorrect SAN alert not followed by the SAN Input box
 
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
@@ -191,23 +191,28 @@ def update_count(operation):
             item_sheet = workbook[current_sheets[0]]
             timestamp_sheet = workbook[current_sheets[1]]
             san_inputs = []
+
             if any(g in selected_item for g in ["G8", "G9", "G10"]):
                 for _ in range(abs(input_value)):
-                    san_number = show_san_input()
-                    if san_number is None:  # User cancelled the input
-                        return
-                    san_number = "SAN" + san_number
-                    if operation == 'add':
-                        if san_number not in san_inputs and is_san_unique(san_number):
-                            san_inputs.append(san_number)
-                        else:
-                            tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
-                    elif operation == 'subtract':
-                        if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
-                            san_inputs.append(san_number)
-                        else:
-                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
-                            continue
+                    while True:
+                        san_number = show_san_input()
+                        if san_number is None:  # User cancelled the input
+                            return
+                        san_number = "SAN" + san_number
+
+                        if operation == 'add':
+                            if san_number not in san_inputs and is_san_unique(san_number):
+                                san_inputs.append(san_number)
+                                break
+                            else:
+                                tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
+                        elif operation == 'subtract':
+                            if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
+                                san_inputs.append(san_number)
+                                break
+                            else:
+                                tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
+                                continue
             for san in san_inputs:
                 if operation == 'add':
                     all_sans_sheet.append([selected_item, san, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
