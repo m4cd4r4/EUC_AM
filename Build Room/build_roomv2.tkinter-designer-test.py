@@ -1,8 +1,7 @@
 # Add dark-mode
-
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
-# 01.01.24
+# 31.12.23
 
 import logging.config
 from pathlib import Path
@@ -42,11 +41,11 @@ else:
     workbook.create_sheet('Project Designated Timestamps')
     workbook.create_sheet('All SANs')
     workbook['4.2 Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['4.2 Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['4.2 Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['BR Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['BR Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['BR Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['Project Designated Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['Project Designated Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['Project Designated Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['All SANs'].append(["SAN Number", "Item", "Timestamp"])
     workbook.save(workbook_path)
 
@@ -96,7 +95,6 @@ class SANInputDialog(tk.Toplevel):
 
 def is_san_unique(san_number):
     return all(san_number != row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True))
-    print(f"Checking SAN {san_number}: Unique - {unique}")  # Debug print
 
 def show_san_input():
     dialog = SANInputDialog(root, "Enter SAN Number")
@@ -131,16 +129,40 @@ button_add.pack(side='left', padx=5)
 xlsx_button = ctk.CTkButton(entry_frame, text=".xlsx", command=open_spreadsheet, width=button_width, font=("Helvetica", 16))
 xlsx_button.pack(side='left', padx=5)
 
-current_mode = "light"  # Global variable to track the current mode
+# current_mode = "light"  # Global variable to track the current mode
+def apply_treeview_style(style_name):
+    style = ttk.Style()
+    style.configure(style_name + ".Treeview", font=('Helvetica', 12, 'bold'), foreground="white")
+    style.configure(style_name + ".Treeview.Heading", font=('Helvetica', 13, 'bold'))
+
+def update_treeview_colors():
+    style = ttk.Style()
+    if ctk.get_appearance_mode() == "dark":
+        style.configure("Treeview", background="darkgrey", fieldbackground="darkgrey", foreground="white")
+        style.map("Treeview", background=[('selected', 'darkblue')], foreground=[('selected', 'white')])
+        style.configure("Treeview.Heading", background="grey", foreground="white")
+        tree.tag_configure('oddrow', background='#505050')  # Dark grey
+        tree.tag_configure('evenrow', background='#404040')  # Lighter grey
+        log_view.tag_configure('oddrow', background='#505050')
+        log_view.tag_configure('evenrow', background='#404040')
+    else:
+        style.configure("Treeview", background="white", fieldbackground="white", foreground="black")
+        style.map("Treeview", background=[('selected', 'blue')], foreground=[('selected', 'white')])
+        style.configure("Treeview.Heading", background="lightgrey", foreground="black")
+        tree.tag_configure('oddrow', background='#f0f0f0')  # Light grey
+        tree.tag_configure('evenrow', background='white')
+        log_view.tag_configure('oddrow', background='#f0f0f0')
+        log_view.tag_configure('evenrow', background='white')
 
 def toggle_theme():
-    global current_mode
-    print("Toggle theme called")
-    print(f"Current mode: {current_mode}")
+    global tree, log_view
+    current_mode = ctk.get_appearance_mode()
     new_mode = "dark" if current_mode == "light" else "light"
-    current_mode = new_mode  # Update the global variable
-    print(f"Switching to {new_mode} mode")
     ctk.set_appearance_mode(new_mode)
+    update_treeview_colors()
+
+# Initialize the treeview with default light mode colors
+update_treeview_colors()
 
 # Create a menu bar
 menu_bar = tk.Menu(root)
@@ -152,17 +174,6 @@ menu_bar.add_cascade(label="File", menu=file_menu)
 
 # Add "Toggle Dark Mode" to the "File" menu
 file_menu.add_command(label="Toggle Dark Mode", command=toggle_theme)
-
-
-# def toggle_theme():
-#     print("Toggle theme called")  # Debugging print
-#     current_mode = ctk.get_appearance_mode()
-#     new_mode = "dark" if current_mode == "light" else "light"
-#     ctk.set_appearance_mode(new_mode)
-
-# toggle_theme_button = ctk.CTkButton(entry_frame, command=toggle_theme, width=20, height=20, fg_color="#000000", hover_color="#000000")
-# toggle_theme_button.pack(side='left', padx=5)
-
 
 def update_treeview():
     tree.delete(*tree.get_children())
@@ -216,7 +227,6 @@ def update_log_view():
                 log_view.tag_configure('evenrow', background='white')
                 row_count += 1
 
-
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
     if selected_item:
@@ -238,8 +248,7 @@ def update_count(operation):
 
                         if operation == 'add':
                             if is_san_unique(san_number):
-                                print(f"Adding unique SAN {san_number}")  # Debug print
-                                all_sans_sheet.append([san_number, selected_item, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                                all_sans_sheet.append([selected_item, san_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
                                 log_change(selected_item, operation, san_number, timestamp_sheet)
                                 san_count += 1
                                 break
@@ -283,22 +292,21 @@ for col in columns:
     tree.column(col, anchor='w', width=200, stretch=False)
 tree.pack(expand=True, fill="both", padx=10, pady=20)
 
+# Define and set up the 'log_view' widget
 log_view_frame = ctk.CTkFrame(root)
 log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
-
 log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
 log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=8)
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='w')
     log_view.column(col, anchor='w', width=170, stretch=False)
-
 scrollbar_log = ttk.Scrollbar(log_view_frame, orient="vertical", command=log_view.yview)
 scrollbar_log.pack(side='right', fill='y')
 log_view.configure(yscrollcommand=scrollbar_log.set)
 log_view.pack(expand=True, fill='both')
 
-root.after(100, update_treeview)
-update_log_view()
+# Call the function to update the Treeview colors
+update_treeview_colors()
 
 root.mainloop()
 

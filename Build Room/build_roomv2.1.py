@@ -1,8 +1,9 @@
-# Add dark-mode
+# Accurate detection of presence of SANs
+# However, asks for double the number of SANs to be subtracted
 
 # Build Room\build_roomv2.py
 # Author: Macdara o Murchu
-# 01.01.24
+# 02.01.24
 
 import logging.config
 from pathlib import Path
@@ -42,11 +43,11 @@ else:
     workbook.create_sheet('Project Designated Timestamps')
     workbook.create_sheet('All SANs')
     workbook['4.2 Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['4.2 Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['4.2 Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['BR Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['BR Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['BR Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['Project Designated Items'].append(["Item", "LastCount", "NewCount"])
-    workbook['Project Designated Timestamps'].append(["Item", "Action", "SAN Number", "Timestamp"])
+    workbook['Project Designated Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
     workbook['All SANs'].append(["SAN Number", "Item", "Timestamp"])
     workbook.save(workbook_path)
 
@@ -95,8 +96,12 @@ class SANInputDialog(tk.Toplevel):
         self.destroy()
 
 def is_san_unique(san_number):
-    return all(san_number != row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True))
-    print(f"Checking SAN {san_number}: Unique - {unique}")  # Debug print
+    # Adjust the search to account for the 'SAN' prefix properly
+    search_string = "SAN" + san_number if not san_number.startswith("SAN") else san_number
+    unique = all(search_string != row[0] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True))
+    print(f"Checking SAN {search_string}: Unique - {unique}")  # Debug print
+    return unique
+
 
 def show_san_input():
     dialog = SANInputDialog(root, "Enter SAN Number")
@@ -152,17 +157,6 @@ menu_bar.add_cascade(label="File", menu=file_menu)
 
 # Add "Toggle Dark Mode" to the "File" menu
 file_menu.add_command(label="Toggle Dark Mode", command=toggle_theme)
-
-
-# def toggle_theme():
-#     print("Toggle theme called")  # Debugging print
-#     current_mode = ctk.get_appearance_mode()
-#     new_mode = "dark" if current_mode == "light" else "light"
-#     ctk.set_appearance_mode(new_mode)
-
-# toggle_theme_button = ctk.CTkButton(entry_frame, command=toggle_theme, width=20, height=20, fg_color="#000000", hover_color="#000000")
-# toggle_theme_button.pack(side='left', padx=5)
-
 
 def update_treeview():
     tree.delete(*tree.get_children())
@@ -234,7 +228,8 @@ def update_count(operation):
                         san_number = show_san_input()
                         if san_number is None:  # User cancelled the input
                             return
-                        san_number = "SAN" + san_number
+                        # Ensure the SAN number has the 'SAN' prefix
+                        san_number = "SAN" + san_number if not san_number.startswith("SAN") else san_number
 
                         if operation == 'add':
                             if is_san_unique(san_number):
@@ -246,18 +241,20 @@ def update_count(operation):
                             else:
                                 tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
                         elif operation == 'subtract':
-                            if any(san_number == row[1] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True)):
+                            # Correct the comparison here as well to check the existence properly
+                            existing_san = any(san_number == row[0] for row in all_sans_sheet.iter_rows(min_row=2, values_only=True))
+                            if existing_san:
                                 for row in all_sans_sheet.iter_rows(min_row=2):
-                                    if row[1].value == san_number:
+                                    if row[0].value == san_number:
                                         all_sans_sheet.delete_rows(row[0].row)
                                         log_change(selected_item, operation, san_number, timestamp_sheet)
                                         san_count += 1
                                         break
-                                break
                             else:
                                 tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
                                 continue
-                input_value = san_count  # Adjust input_value to the number of valid SANs processed
+                input_value = san_count  # Set input_value to the number of valid SANs processed
+
 
             # Adjust item counts
             for row in item_sheet.iter_rows(min_row=2):
