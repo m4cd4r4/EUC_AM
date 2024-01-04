@@ -26,7 +26,7 @@ else:
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("550x600")
+root.geometry("500x650")
 
 script_directory = Path(__file__).parent
 workbook_path = script_directory / 'EUC_Perth_Assets.xlsx'
@@ -117,23 +117,23 @@ def open_spreadsheet():
         tk.messagebox.showerror("Error", f"Failed to open the spreadsheet: {e}")
 
 frame = ctk.CTkFrame(root)
-frame.pack(padx=10, pady=10, fill='both', expand=True)
+frame.pack(padx=3, pady=3, fill='both', expand=True)
 entry_frame = ctk.CTkFrame(frame)
-entry_frame.pack(pady=10)
+entry_frame.pack(pady=3)
 
 button_width = 50
-button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 16))
-button_1.pack(side='left', padx=5)
-button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 16))
-button_2.pack(side='left', padx=5)
-button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 16))
-button_subtract.pack(side='left', padx=5)
+button_1 = ctk.CTkButton(entry_frame, text="Basement 4.2", command=lambda: switch_sheets('original'), width=button_width, font=("Helvetica", 14))
+button_1.pack(side='left', padx=3)
+button_2 = ctk.CTkButton(entry_frame, text="Build Room", command=lambda: switch_sheets('backup'), width=button_width, font=("Helvetica", 14))
+button_2.pack(side='left', padx=3)
+button_subtract = ctk.CTkButton(entry_frame, text="-", command=lambda: update_count('subtract'), width=button_width, font=("Helvetica", 14))
+button_subtract.pack(side='left', padx=3)
 entry_value = tk.Entry(entry_frame, font=("Helvetica", 16), justify='center', width=10, validate="key", validatecommand=vcmd)
 entry_value.pack(side='left')
-button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 16))
-button_add.pack(side='left', padx=5)
-xlsx_button = ctk.CTkButton(entry_frame, text=".xlsx", command=open_spreadsheet, width=button_width, font=("Helvetica", 16))
-xlsx_button.pack(side='left', padx=5)
+button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 14))
+button_add.pack(side='left', padx=3)
+xlsx_button = ctk.CTkButton(entry_frame, text=".xlsx", command=open_spreadsheet, width=button_width, font=("Helvetica", 14))
+xlsx_button.pack(side='left', padx=3)
 
 current_mode = "light"  # Global variable to track the current mode
 
@@ -274,8 +274,9 @@ columns = ("Item", "LastCount", "NewCount")
 tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode='browse', style="Treeview")
 for col in columns:
     tree.heading(col, text=col, anchor='w')
-    tree.column(col, anchor='w', width=200, stretch=False)
-tree.pack(expand=True, fill="both", padx=10, pady=20)
+    tree.column("Item", anchor='w', width=250, stretch=False) # Width of the "Item" column in the treeview. The other columns are default width.
+    tree.column("LastCount", anchor='w', width=175, stretch=False)
+tree.pack(expand=True, fill="both", padx=3, pady=3)
 
 log_view_frame = ctk.CTkFrame(root)
 log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
@@ -284,7 +285,9 @@ log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
 log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=8)
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='w')
-    log_view.column(col, anchor='w', width=170, stretch=False)
+    log_view.column("Timestamp", anchor='w', width=190, stretch=False)
+    log_view.column("Item", anchor='w', width=160, stretch=False)
+    log_view.column("Action", anchor='w', width=100, stretch=False)
 
 scrollbar_log = ttk.Scrollbar(log_view_frame, orient="vertical", command=log_view.yview)
 scrollbar_log.pack(side='right', fill='y')
