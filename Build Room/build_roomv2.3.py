@@ -1,7 +1,7 @@
 # Commented out all plot & graph functionality for now
 
 # Build Room\build_roomv2.3.py
-# Author: Macdara o Murchu
+# Author: Macdara O Murchu
 # 08.01.24
 
 import logging.config
@@ -215,6 +215,16 @@ def toggle_theme():
 #     canvas_widget.pack(fill=tk.BOTH, expand=True)
 #     canvas.draw()
 
+# Function to display the About window
+def show_about():
+    about_window = tk.Toplevel(root)
+    about_window.title("About")
+    about_window.geometry("300x200")  # Adjust the size as needed
+
+    about_label = tk.Label(about_window, text="Perth EUC Assets\nVersion 2.3\n© 2024 Macdara o Murchu",
+                           justify=tk.CENTER, font=("Helvetica", 12))
+    about_label.pack(expand=True)
+
 # Create a menu bar
 menu_bar = tk.Menu(root)
 root.config(menu=menu_bar)
@@ -233,7 +243,7 @@ file_menu.add_command(label="Open Spreadsheet", command=open_spreadsheet)
 
 # file_menu.add_command(label="Stock Levels", command=open_stock_levels_window)
 
-
+file_menu.add_command(label="About", command=show_about)  # "About" menu option
 
 def update_treeview():
     tree.delete(*tree.get_children())
