@@ -298,4 +298,3 @@ root.after(100, update_treeview)
 update_log_view()
 
 root.mainloop()
-
