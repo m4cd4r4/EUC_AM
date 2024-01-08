@@ -49,6 +49,3 @@
 ---
 
 This script is a comprehensive tool for inventory management, particularly focused on handling items and SAN numbers, with an emphasis on logging and data presentation via a graphical interface.
-
-?
-ChatGPT
