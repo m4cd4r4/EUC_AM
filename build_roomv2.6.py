@@ -1,8 +1,8 @@
-# Commented out the "File" dropdown menu and brought the .XLSX button back to the header
+# Added a count in the "Action" column of logview - If a SAN, then "Action" value will be "Add 1" or "Subtract" one. If any other item, it will be "Add [total]", "Subtract [total]"
 
-# Build Room\build_roomv2.3.py
+# Build Room\build_roomv2.6.py
 # Author: Macdara O Murchu
-# 11.01.24
+# 14.01.24
 
 import logging.config
 from pathlib import Path
@@ -156,15 +156,15 @@ def update_treeview():
             row_count += 1
 
 
-def log_change(item, action, san_number="", timestamp_sheet=None):
+def log_change(item, action, count=1, san_number="", timestamp_sheet=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    action_text = f"{action} {count}" if san_number == "" else f"{action} 1"
     try:
         if timestamp_sheet is not None:
-            san_number = f"SAN{san_number}" if san_number and not san_number.startswith('SAN') else san_number
-            timestamp_sheet.append([timestamp, item, action, san_number])
+            timestamp_sheet.append([timestamp, item, action_text, san_number])
             workbook.save(workbook_path)
             update_log_view()
-            logging.info(f"Logged change: Time: {timestamp}, Item: {item}, Action: {action}, SAN: {san_number}")
+            logging.info(f"Logged change: Time: {timestamp}, Item: {item}, Action: {action_text}, SAN: {san_number}")
         else:
             logging.error("No timestamp sheet provided for logging.")
     except Exception as e:
@@ -207,19 +207,18 @@ def update_count(operation):
 
             if san_required:
                 san_count = 0
-                # Start a loop that will run for the number of SANs entered by the user
                 while san_count < input_value:
                     san_number = show_san_input()
                     if san_number is None:  # User cancelled the input
                         return
-                    # Ensure the SAN number has the 'SAN' prefix
                     san_number = "SAN" + san_number if not san_number.startswith("SAN") else san_number
+
 
                     if operation == 'add':
                         if is_san_unique(san_number):
                             print(f"Adding unique SAN {san_number}")  # Debug print
                             all_sans_sheet.append([san_number, selected_item, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-                            log_change(selected_item, operation, san_number, timestamp_sheet)
+                            log_change(selected_item, operation, 1, san_number, timestamp_sheet)  # Correctly pass the SAN number
                             san_count += 1
                         else:
                             tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
@@ -231,9 +230,10 @@ def update_count(operation):
                                 row_to_delete = row[0].row
                                 break
 
+
                         if row_to_delete:
                             all_sans_sheet.delete_rows(row_to_delete)
-                            log_change(selected_item, operation, san_number, timestamp_sheet)
+                            log_change(selected_item, operation, 1, san_number, timestamp_sheet)
                             san_count += 1
                         else:
                             tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
@@ -249,7 +249,7 @@ def update_count(operation):
 
             # Log the change for items not requiring SAN
             if not san_required:
-                log_change(selected_item, operation, "", timestamp_sheet)
+                log_change(selected_item, operation, input_value, "", timestamp_sheet)
 
             workbook.save(workbook_path)
             update_treeview()
