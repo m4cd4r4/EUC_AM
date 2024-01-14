@@ -1,0 +1,6 @@
+Only items with G8, G9 or G10 in their names should trigger the SAN Input fuction
+
+Load the tkinter window with the "Timestamp" column completely visible/expanded. Currently, the last number is being cut off by the next column.
+
+4.2 Timestamps sheet is being written in Timesheet, Item, Action, SAN
+Labels are in the order Item, Action, SAN NUmber, Time 

@@ -1,0 +1,41 @@
+I want to create a tkinter app that looks like the attached image, "Perth EUC Assets.jpg"
+
+It will have 5 buttons, just like in the screenshot.
+Their labels will be:
+"Basement 4.2", "Build Room", a "Minus" symbol, a "Plus" symbol, and ."xlsx"
+
+The "_" & "-" symbols have a text input field between them, that only accepts numbers.
+
+There is a spreadsheet called "Perth EUC Assets.xlsx" in the same folder as the script.
+This spreadsheet will contain the following sheets and column headers:
+
+# Load the workbook or create it if it doesn't exist
+workbook_path = 'EUC_Perth_Assets.xlsx'
+if Path(workbook_path).exists():
+    workbook = load_workbook(workbook_path)
+else:
+    workbook = Workbook()
+    workbook.active.title = '4.2 Items'
+    workbook.create_sheet('4.2 Timestamps')
+    workbook.create_sheet('BR Items')
+    workbook.create_sheet('BR Timestamps')
+    workbook.create_sheet('Project Designated Items')
+    workbook.create_sheet('Project Designated Timestamps')
+    workbook.create_sheet('All SANs')
+    workbook['4.2 Items'].append(["Item", "LastCount", "NewCount"])
+    workbook['4.2 Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
+    workbook['BR Items'].append(["Item", "LastCount", "NewCount"])
+    workbook['BR Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
+    workbook['Project Designated Items'].append(["Item", "LastCount", "NewCount"])
+    workbook['Project Designated Timestamps'].append(["Timestamp", "Item", "Action", "SAN Number"])
+    workbook['All SANs'].append(["Item", "SAN Number", "Timestamp"])
+    workbook.save(workbook_path)
+
+
+The tkinter window will have 2 "treeviews" - The top one will contain the data from the "4.2 Items" or "BR Items" sheets, depending on whether the button "Basement 4.2" or "Build Room" is active.
+
+The "Basement 4.2" button is to be active by default at startup.
+This button is linked to the 1st treeview displaying the contents of sheet1, "4.2 Items", and the 2nd treeview displaying the contents of the sheet "4.2 Timestamps"
+
+If the "Build Room" button is selected/is active, then the 1st treeview will display the contents of sheet "BR Items", and the second treeview 
+
