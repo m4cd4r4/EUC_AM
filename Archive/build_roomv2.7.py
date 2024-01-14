@@ -39,7 +39,7 @@ def run_build_room_inventory_script():
         tk.messagebox.showerror("Error", "The script 'inventory-levels_BRv1.py' does not exist in the directory.")
 
 def run_combined_rooms_inventory_script():
-    script_path = script_directory / "inventory-levels_combinedv1.py"
+    script_path = script_directory / "inventory-levels_combinedv1.1.py"
     if script_path.exists():
         os.system(f"python {script_path}")
     else:
