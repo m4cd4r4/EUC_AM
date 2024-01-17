@@ -1,11 +1,17 @@
-# Local file_path to spreadsheet
-
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
+import os
+import sys
 
-# Load the spreadsheet
-file_path = 'C:/Users/Administrator/Documents/Github/EUC_AM/EUC_Perth_Assets.xlsx'
+# Determine the directory where the EXE is located
+exe_dir = os.path.dirname(sys.executable)
+
+# Construct the path to the spreadsheet in the same directory
+file_path = os.path.join(exe_dir, 'EUC_Perth_Assets.xlsx')
+
+# # Load the spreadsheet
+# file_path = 'C:/Users/Administrator/Documents/Github/EUC_AM/EUC_Perth_Assets.xlsx'
 xl = pd.ExcelFile(file_path)
 
 # Load sheets into DataFrames by name
@@ -37,9 +43,6 @@ for bar in bars:
 
 plt.ylabel('Item', fontsize=14)
 plt.xlabel('Volume', fontsize=14)
-
-# Set the range of the x-axis
-plt.xlim(0, 120)
 
 # Get current date in the format dd-mm-yyyy
 current_date = datetime.now().strftime('%d-%m-%Y')
