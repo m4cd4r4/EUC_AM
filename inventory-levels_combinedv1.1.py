@@ -45,7 +45,7 @@ plt.xlim(0, 120)
 current_date = datetime.now().strftime('%d-%m-%Y')
 
 # Update the title to include current date
-plt.title(f'4.2 & BR Combined - Total Inventory Levels (Perth) - {current_date}', fontsize=16)
+plt.title(f'Combined - 4.2 & Build Room Inventory Levels (Perth) - {current_date}', fontsize=16)
 
 plt.legend()
 plt.tight_layout()

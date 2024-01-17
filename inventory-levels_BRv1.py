@@ -31,13 +31,13 @@ plt.ylabel('Item', fontsize=14)
 plt.xlabel('Volume', fontsize=14)
 
 # Set the range of the x-axis
-plt.xlim(0, 150)
+plt.xlim(0, 120)
 
 # Get current date in the format dd-mm-yyyy
 current_date = datetime.now().strftime('%d-%m-%Y')
 
 # Update the title to include current date
-plt.title(f'L6 Build Room - Inventory Levels (Perth) - {current_date}', fontsize=16)
+plt.title(f'Level 6 - Build Room - Inventory Levels (Perth) - {current_date}', fontsize=16)
 
 plt.legend()
 plt.tight_layout()
@@ -46,6 +46,6 @@ plt.tight_layout()
 current_datetime = datetime.now().strftime('%d.%m.%y-%I.%M%p')
 
 # Save the plot to a file with timestamp in the label
-file_name = f'C:/Users/Administrator/Documents/Github/EUC_AM/Plots/inventory_levels_BR_{current_datetime}.png'
+file_name = f'C:/Users/Administrator/Documents/Github/EUC_AM/Plots/BR_inventory_levels_{current_datetime}.png'
 plt.savefig(file_name)
 plt.show()
