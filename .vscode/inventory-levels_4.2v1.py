@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 # Load the spreadsheet
-file_path = 'C:/Users/Administrator/Documents/Github/EUC_AM/EUC_Perth_Peripherals.xlsx'
+file_path = 'C:/Users/Administrator/Documents/Github/EUC_AM/EUC_Perth_Assets.xlsx'
 xl = pd.ExcelFile(file_path)
 
 # Load a sheet into a DataFrame by name: df_items
@@ -35,7 +35,7 @@ plt.xlim(0, 120)
 current_date = datetime.now().strftime('%d-%m-%Y')
 
 # Update the title to include current date
-plt.title(f'Basement - 4.2 - Inventory Levels (Perth) - {current_date}', fontsize=16)
+plt.title(f'Basement 4.2 - Inventory Levels (Perth) - {current_date}', fontsize=16)
 
 plt.legend()
 plt.tight_layout()
