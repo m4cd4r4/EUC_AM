@@ -228,16 +228,6 @@ def update_log_view():
                 row_count += 1
 
 
-def update_count(operation):
-    selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
-    if selected_item:
-        input_value = entry_value.get()
-        if input_value.isdigit():
-            input_value = int(input_value)
-            item_sheet = workbook[current_sheets[0]]
-            timestamp_sheet = workbook[current_sheets[1]]
-            san_required = any(g in selected_item for g in ["G8", "G9", "G10"])
-
 # Add the Serial Number Input Dialog Class
 class SerialNumberInputDialog(tk.Toplevel):
     def __init__(self, parent, title=None):
@@ -285,7 +275,97 @@ def save_serial_number(serial_number):
     workbook['Headsets'].append([serial_number])
     workbook.save(workbook_path)
 
+class NotesInputDialog(tk.Toplevel):
+    def __init__(self, parent, title=None):
+        super().__init__(parent)
+        self.transient(parent)
+        self.title(title)
+        self.parent = parent
+        self.result = None
+        self.create_widgets()
+        self.grab_set()
+        self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
+        self.wait_window(self)
 
+    def create_widgets(self):
+        self.text = tk.Text(self, height=5, width=30)
+        self.text.pack(padx=5, pady=5)
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=5)
+        submit_button = ttk.Button(button_frame, text="Submit", command=self.on_submit)
+        submit_button.pack(side='left', padx=5)
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        cancel_button.pack(side='left', padx=5)
+
+    def on_submit(self):
+        notes = self.text.get("1.0", tk.END).strip()
+        if notes:
+            self.result = notes
+            self.destroy()
+        else:
+            tk.messagebox.showerror("Error", "Please enter some notes.", parent=self)
+
+    def on_cancel(self):
+        self.result = None
+        self.destroy()
+
+def show_notes_input():
+    dialog = NotesInputDialog(root, "Notes")
+    return dialog.result
+
+
+class ServiceNowInputDialog(tk.Toplevel):
+    def __init__(self, parent, title=None):
+        super().__init__(parent)
+        self.transient(parent)
+        self.title(title)
+        self.parent = parent
+        self.result = None
+        self.create_widgets()
+        self.grab_set()
+        self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
+        self.wait_window(self)
+
+    def create_widgets(self):
+        ttk.Label(self, text="Ticket Prefix:").pack(padx=5, pady=5)
+        self.prefix_var = tk.StringVar()
+        self.prefix_menu = ttk.Combobox(self, textvariable=self.prefix_var, values=["TASK", "RITM", "CHG", "INC"])
+        self.prefix_menu.pack(padx=5, pady=5)
+        self.prefix_menu.current(0)  # Default selection
+        ttk.Label(self, text="Ticket Number:").pack(padx=5, pady=5)
+        self.entry = ttk.Entry(self)
+        self.entry.pack(padx=5, pady=5)
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=5)
+        submit_button = ttk.Button(button_frame, text="Submit", command=self.on_submit)
+        submit_button.pack(side='left', padx=5)
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        cancel_button.pack(side='left', padx=5)
+
+    def on_submit(self):
+        ticket_number = self.entry.get()
+        prefix = self.prefix_var.get()
+        if ticket_number and prefix:
+            self.result = f"{prefix}-{ticket_number}"
+            self.destroy()
+        else:
+            tk.messagebox.showerror("Error", "Please enter a valid Ticket Number.", parent=self)
+
+    def on_cancel(self):
+        self.result = None
+        self.destroy()
+
+def show_servicenow_input():
+    dialog = ServiceNowInputDialog(root, "Enter ServiceNow Ticket")
+    return dialog.result
+
+def save_servicenow_ticket(serial_number, servicenow_ticket):
+    if 'Headsets' not in workbook.sheetnames:
+        workbook.create_sheet('Headsets')
+        workbook['Headsets'].append(["Serial Number", "ServiceNow #"])
+    headset_sheet = workbook['Headsets']
+    headset_sheet.append([serial_number, servicenow_ticket])
+    workbook.save(workbook_path)
 
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
@@ -295,9 +375,22 @@ def update_count(operation):
             input_value = int(input_value)
             item_sheet = workbook[current_sheets[0]]
             timestamp_sheet = workbook[current_sheets[1]]
-            san_required = any(g in selected_item for g in ["G8", "G9", "G10"])
-            headset_required = "headset" in selected_item.lower()  # Check if the item is a headset
+            headset_required = "headset" in selected_item.lower()
 
+            if headset_required and operation == 'subtract':
+                headset_count = 0
+                while headset_count < input_value:
+                    serial_number = show_serial_number_input()
+                    if serial_number is None:  # User cancelled the input
+                        return
+                    servicenow_ticket = show_servicenow_input()
+                    notes = ""
+                    if not servicenow_ticket:  # If no ServiceNow ticket is provided
+                        notes = show_notes_input()
+                        if notes is None:  # If no notes are provided, and the dialog is cancelled
+                            return
+                    save_headset_info(serial_number, servicenow_ticket, notes)
+                    headset_count += 1
 
             if san_required:
                 san_count = 0
@@ -338,9 +431,13 @@ def update_count(operation):
                     serial_number = show_serial_number_input()
                     if serial_number is None:  # User cancelled the input
                         return
+                    servicenow_ticket = show_servicenow_input()  # Prompt for ServiceNow Ticket
+                    if servicenow_ticket is None:  # User cancelled the input
+                        return
                     save_serial_number(serial_number)
-                    headset_count += 1                    
-
+                    save_servicenow_ticket(serial_number, servicenow_ticket)
+                    headset_count += 1
+                    
             # Adjust item counts for non-SAN or non-headset items
             if not san_required and not headset_required:
                 for row in item_sheet.iter_rows(min_row=2):
@@ -373,6 +470,13 @@ def update_count(operation):
             update_treeview()
             update_log_view()
 
+def save_headset_info(serial_number, servicenow_ticket, notes):
+    if 'Headsets' not in workbook.sheetnames:
+        workbook.create_sheet('Headsets')
+        workbook['Headsets'].append(["Serial Number", "ServiceNow #", "Notes"])
+    headset_sheet = workbook['Headsets']
+    headset_sheet.append([serial_number, servicenow_ticket, notes])
+    workbook.save(workbook_path)
 
 columns = ("Item", "LastCount", "NewCount")
 tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode='browse', style="Treeview")
