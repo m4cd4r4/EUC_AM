@@ -1,7 +1,8 @@
 # Add compulsory S/N entry for subtraction of wired & wireless headsets
 # Add optional servicenow ticket number entry for wired & wireless headsets
-# * If servicenow ticket number input box cancelled, a "Notes" form appears, to log info about the removed headset
-# Build Room\build_roomv2.9.py
+# * If servicenow ticket number input box cancelled, a "Notes" form appears, logging info on the removed headset
+#
+# Build Room\build_roomv2.10.py
 # Author: Macdara O Murchu
 # 29.01.24
 
@@ -46,16 +47,36 @@ def run_combined_rooms_inventory_script():
     else:
         tk.messagebox.showerror("Error", "The script 'inventory-levels_combinedv1.py' does not exist in the directory.")
 
-
 root = ctk.CTk()
 root.title("Perth EUC Assets")
 root.geometry("500x650")
+
+# Function to create and update the Headsets log view
+def show_headsets_log():
+    headsets_window = tk.Toplevel(root)
+    headsets_window.title("Headsets Log")
+    headsets_window.geometry("600x400")
+
+    headset_columns = ("Serial Number", "ServiceNow #", "Notes")
+    headsets_tree = ttk.Treeview(headsets_window, columns=headset_columns, show="headings")
+    for col in headset_columns:
+        headsets_tree.heading(col, text=col)
+        headsets_tree.column(col, anchor='w')
+
+    # Populate the Treeview
+    if 'Headsets' in workbook.sheetnames:
+        headset_sheet = workbook['Headsets']
+        for row in headset_sheet.iter_rows(min_row=2, values_only=True):
+            headsets_tree.insert('', 'end', values=row)
+
+    headsets_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
 menu_bar = tk.Menu(root)
 plots_menu = tk.Menu(menu_bar, tearoff=0)
 plots_menu.add_command(label="Basement 4.2 Inventory", command=run_inventory_script)
 plots_menu.add_command(label="Build Room Inventory", command=run_build_room_inventory_script)
 plots_menu.add_command(label="Combined Inventory", command=run_combined_rooms_inventory_script)
+plots_menu.add_command(label="Headsets", command=show_headsets_log)
 menu_bar.add_cascade(label="Data", menu=plots_menu)
 root.config(menu=menu_bar)
 
