@@ -51,7 +51,7 @@ plt.legend()
 plt.tight_layout()
 
 # Get current date and time in the format dd.mm.yy-hh.mm[am/pm] for file name
-current_datetime = datetime.now().strftime('%d.%m.%y-%I.%M%p')
+current_datetime = datetime.now().strftime('%d.%m.%y-%H.%M.%S')
 
 # Save the plot to a file with timestamp in the label
 file_name = f'Plots/combined_inventory_levels_{current_datetime}.png'
