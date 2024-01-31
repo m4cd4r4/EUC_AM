@@ -1,11 +1,22 @@
-# Local file_path to spreadsheet
-
+import os
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# Function to get the directory of the executable or script
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        # If the application is frozen (executable)
+        return os.path.dirname(sys.executable)
+    else:
+        # If it's run as a script
+        return os.path.dirname(os.path.abspath(__file__))
+
+base_path = get_base_path()
+
 # Load the spreadsheet
-file_path = './EUC_Perth_Assets.xlsx'
+file_path = os.path.join(base_path, 'EUC_Perth_Assets.xlsx')
 xl = pd.ExcelFile(file_path)
 
 # Load sheets into DataFrames by name
@@ -37,23 +48,24 @@ for bar in bars:
 
 plt.ylabel('Item', fontsize=12)
 plt.xlabel('Volume', fontsize=12)
-
-# Set the range of the x-axis
 plt.xlim(0, 120)
-
-# Get current date in the format dd-mm-yyyy
 current_date = datetime.now().strftime('%d-%m-%Y')
-
-# Update the title to include current date
 plt.title(f'Combined - 4.2 & Build Room Inventory Levels (Perth) - {current_date}', fontsize=14)
-
 plt.legend()
 plt.tight_layout()
 
-# Get current date and time in the format dd.mm.yy-hh.mm[am/pm] for file name
+# Ensure 'Plots' folder exists in the same directory as the executable/script
+plots_folder = os.path.join(base_path, 'Plots')
+if not os.path.exists(plots_folder):
+    os.makedirs(plots_folder)
+
+# Get current date and time for file name
 current_datetime = datetime.now().strftime('%d.%m.%y-%H.%M.%S')
 
-# Save the plot to a file with timestamp in the label
-file_name = f'./Plots/combined_inventory_levels_{current_datetime}.png'
+# Construct the full file path for saving the plot
+file_name = os.path.join(plots_folder, f'combined_inventory_levels_{current_datetime}.png')
+
+# Save and show the plot
 plt.savefig(file_name)
 plt.show()
+
