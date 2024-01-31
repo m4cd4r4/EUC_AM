@@ -135,13 +135,14 @@ class SANInputDialog(tk.Toplevel):
         cancel_button.pack(side='left', padx=5)
 
     def on_submit(self):
-        san_input = self.entry.get()
-        if san_input and len(san_input) >= 5 and len(san_input) <= 6:
-            self.result = san_input
+        ticket_number = self.entry.get()
+        prefix = self.prefix_var.get()
+        if ticket_number and prefix:
+            self.result = f"{prefix}{ticket_number}"  # Dash removed between prefix and ticket number
             self.destroy()
         else:
-            tk.messagebox.showerror("Error", "Please enter a valid SAN number.", parent=self)
-            self.entry.focus_set()
+            tk.messagebox.showerror("Error", "Please enter a valid Ticket Number.", parent=self)
+
 
     def on_cancel(self):
         self.result = None
@@ -367,7 +368,8 @@ class ServiceNowInputDialog(tk.Toplevel):
         ticket_number = self.entry.get()
         prefix = self.prefix_var.get()
         if ticket_number and prefix:
-            self.result = f"{prefix}-{ticket_number}"
+            # Concatenate prefix and ticket number without a dash
+            self.result = f"{prefix}{ticket_number}"
             self.destroy()
         else:
             tk.messagebox.showerror("Error", "Please enter a valid Ticket Number.", parent=self)
@@ -385,6 +387,8 @@ def save_servicenow_ticket(serial_number, servicenow_ticket):
         workbook.create_sheet('Headsets')
         workbook['Headsets'].append(["Serial Number", "ServiceNow #"])
     headset_sheet = workbook['Headsets']
+    # Remove dash from the ServiceNow ticket number before saving
+    servicenow_ticket = servicenow_ticket.replace('-', '')
     headset_sheet.append([serial_number, servicenow_ticket])
     workbook.save(workbook_path)
 

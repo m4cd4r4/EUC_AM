@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 # Load the spreadsheet
-file_path = 'C:/Users/Administrator/Documents/Github/EUC_AM/EUC_Perth_Assets.xlsx'
+file_path = 'EUC_Perth_Assets.xlsx'
 xl = pd.ExcelFile(file_path)
 
 # Load a sheet into a DataFrame by name: df_items
@@ -46,6 +46,6 @@ plt.tight_layout()
 current_datetime = datetime.now().strftime('%d.%m.%y-%I.%M%p')
 
 # Save the plot to a file with timestamp in the label
-file_name = f'C:/Users/Administrator/Documents/Github/EUC_AM/Plots/BR_inventory_levels_{current_datetime}.png'
+file_name = f'Plots/BR_inventory_levels_{current_datetime}.png'
 plt.savefig(file_name)
 plt.show()
