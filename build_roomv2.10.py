@@ -4,7 +4,7 @@
 #
 # Build Room\build_roomv2.10.py
 # Author: Macdara O Murchu
-# 29.01.24
+# 01.024.24
 
 import logging.config
 from pathlib import Path
@@ -483,15 +483,6 @@ def update_count(operation):
             workbook.save(workbook_path)
             update_treeview()
             update_log_view()    
-
-            # Adjust item counts
-            for row in item_sheet.iter_rows(min_row=2):
-                if row[0].value == selected_item:
-                    row[1].value = row[2].value or 0
-                    if operation == 'add':
-                        row[2].value = (row[2].value or 0) + input_value
-                    elif operation == 'subtract':
-                        row[2].value = max((row[2].value or 0) - input_value, 0)
 
             # Log the change for items not requiring SAN
             if not san_required:
