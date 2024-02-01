@@ -4,7 +4,7 @@
 #
 # Build Room\build_roomv2.10.py
 # Author: Macdara O Murchu
-# 01.024.24
+# 01.02.24
 
 import logging.config
 from pathlib import Path
@@ -16,6 +16,7 @@ from tkinter import ttk
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 import subprocess
+import re
 
 logging_conf_path = Path('logging.conf')
 if logging_conf_path.exists() and logging_conf_path.stat().st_size > 0:
@@ -250,6 +251,9 @@ def update_log_view():
                 row_count += 1
 
 
+# Validation command for alphanumeric input
+alphanumeric_vcmd = (root.register(lambda P: re.match('^[a-zA-Z0-9]*$', P) is not None), '%P')
+
 # Add the Serial Number Input Dialog Class
 class SerialNumberInputDialog(tk.Toplevel):
     def __init__(self, parent, title=None):
@@ -258,13 +262,15 @@ class SerialNumberInputDialog(tk.Toplevel):
         self.title(title)
         self.parent = parent
         self.result = None
+        # Use alphanumeric validation command for entry widget
+        self.entry = ttk.Entry(self, validate="key", validatecommand=alphanumeric_vcmd)
         self.create_widgets()
         self.grab_set()
         self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
         self.wait_window(self)
 
     def create_widgets(self):
-        self.entry = ttk.Entry(self, validate="key", validatecommand=vcmd)
+        # No longer need to redefine self.entry here as it's already defined in __init__
         self.entry.pack(padx=5, pady=5)
         button_frame = tk.Frame(self)
         button_frame.pack(pady=5)
