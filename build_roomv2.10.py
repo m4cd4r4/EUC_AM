@@ -2,9 +2,12 @@
 # Add optional servicenow ticket number entry for wired & wireless headsets
 # * If servicenow ticket number input box cancelled, a "Notes" form appears, logging info on the removed headset
 #
+# Change from numerical to alphanumerical input for Serial #
+# Change from alphanumerical to numerical input for ServiceNow #
+#
 # Build Room\build_roomv2.10.py
 # Author: Macdara O Murchu
-# 01.02.24
+# 02.02.24
 
 import logging.config
 from pathlib import Path
@@ -136,14 +139,12 @@ class SANInputDialog(tk.Toplevel):
         cancel_button.pack(side='left', padx=5)
 
     def on_submit(self):
-        ticket_number = self.entry.get()
-        prefix = self.prefix_var.get()
-        if ticket_number and prefix:
-            self.result = f"{prefix}{ticket_number}"  # Dash removed between prefix and ticket number
+        san_number = self.entry.get()
+        if san_number:
+            self.result = san_number
             self.destroy()
         else:
-            tk.messagebox.showerror("Error", "Please enter a valid Ticket Number.", parent=self)
-
+            tk.messagebox.showerror("Error", "Please enter a valid SAN Number.", parent=self)
 
     def on_cancel(self):
         self.result = None
@@ -361,7 +362,7 @@ class ServiceNowInputDialog(tk.Toplevel):
         self.prefix_menu.pack(padx=5, pady=5)
         self.prefix_menu.current(0)  # Default selection
         ttk.Label(self, text="Ticket Number:").pack(padx=5, pady=5)
-        self.entry = ttk.Entry(self)
+        self.entry = ttk.Entry(self, validate="key", validatecommand=vcmd)
         self.entry.pack(padx=5, pady=5)
         button_frame = tk.Frame(self)
         button_frame.pack(pady=5)
@@ -534,4 +535,3 @@ root.after(100, update_treeview)
 update_log_view()
 
 root.mainloop()
-

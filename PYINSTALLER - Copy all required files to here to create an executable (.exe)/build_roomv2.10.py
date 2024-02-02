@@ -2,9 +2,12 @@
 # Add optional servicenow ticket number entry for wired & wireless headsets
 # * If servicenow ticket number input box cancelled, a "Notes" form appears, logging info on the removed headset
 #
+# Change from numerical to alphanumerical input for Serial #
+# Change from alphanumerical to numerical input for ServiceNow #
+#
 # Build Room\build_roomv2.10.py
 # Author: Macdara O Murchu
-# 29.01.24
+# 02.02.24
 
 import logging.config
 from pathlib import Path
@@ -16,23 +19,9 @@ from tkinter import ttk
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 import subprocess
-import sys
+import re
 
-def get_base_path():
-    if getattr(sys, 'frozen', False):
-        # If the application is run as a bundle, the PyInstaller bootloader
-        # extends the sys module by a flag frozen=True and sets the app 
-        # path into variable _MEIPASS'.
-        return Path(sys._MEIPASS)
-    else:
-        return Path(__file__).parent.absolute()
-
-base_path = get_base_path()
-logging_conf_path = base_path / 'logging.conf'
-script_directory = base_path  # This variable is now essentially the same as base_path
-workbook_path = base_path / 'EUC_Perth_Assets.xlsx'
-
-# logging_conf_path = Path('logging.conf')
+logging_conf_path = Path('logging.conf')
 if logging_conf_path.exists() and logging_conf_path.stat().st_size > 0:
     try:
         logging.config.fileConfig(logging_conf_path)
@@ -49,7 +38,6 @@ def run_inventory_script():
         tk.messagebox.showerror("Error", "The script 'inventory-levels_4.2v1.py' does not exist in the directory.")
 
 def run_build_room_inventory_script():
-    logging.debug("Running Build Room Inventory Script")
     script_path = script_directory / "inventory-levels_BRv1.py"
     if script_path.exists():
         os.system(f"python {script_path}")
@@ -96,8 +84,8 @@ plots_menu.add_command(label="Headsets", command=show_headsets_log)
 menu_bar.add_cascade(label="Data", menu=plots_menu)
 root.config(menu=menu_bar)
 
-# script_directory = Path(__file__).parent
-# workbook_path = script_directory / 'EUC_Perth_Assets.xlsx'
+script_directory = Path(__file__).parent
+workbook_path = script_directory / 'EUC_Perth_Assets.xlsx'
 if Path(workbook_path).exists():
     workbook = load_workbook(workbook_path)
 else:
@@ -151,14 +139,12 @@ class SANInputDialog(tk.Toplevel):
         cancel_button.pack(side='left', padx=5)
 
     def on_submit(self):
-        ticket_number = self.entry.get()
-        prefix = self.prefix_var.get()
-        if ticket_number and prefix:
-            self.result = f"{prefix}{ticket_number}"  # Dash removed between prefix and ticket number
+        san_number = self.entry.get()
+        if san_number:
+            self.result = san_number
             self.destroy()
         else:
-            tk.messagebox.showerror("Error", "Please enter a valid Ticket Number.", parent=self)
-
+            tk.messagebox.showerror("Error", "Please enter a valid SAN Number.", parent=self)
 
     def on_cancel(self):
         self.result = None
@@ -266,6 +252,9 @@ def update_log_view():
                 row_count += 1
 
 
+# Validation command for alphanumeric input
+alphanumeric_vcmd = (root.register(lambda P: re.match('^[a-zA-Z0-9]*$', P) is not None), '%P')
+
 # Add the Serial Number Input Dialog Class
 class SerialNumberInputDialog(tk.Toplevel):
     def __init__(self, parent, title=None):
@@ -274,13 +263,15 @@ class SerialNumberInputDialog(tk.Toplevel):
         self.title(title)
         self.parent = parent
         self.result = None
+        # Use alphanumeric validation command for entry widget
+        self.entry = ttk.Entry(self, validate="key", validatecommand=alphanumeric_vcmd)
         self.create_widgets()
         self.grab_set()
         self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
         self.wait_window(self)
 
     def create_widgets(self):
-        self.entry = ttk.Entry(self, validate="key", validatecommand=vcmd)
+        # No longer need to redefine self.entry here as it's already defined in __init__
         self.entry.pack(padx=5, pady=5)
         button_frame = tk.Frame(self)
         button_frame.pack(pady=5)
@@ -371,7 +362,7 @@ class ServiceNowInputDialog(tk.Toplevel):
         self.prefix_menu.pack(padx=5, pady=5)
         self.prefix_menu.current(0)  # Default selection
         ttk.Label(self, text="Ticket Number:").pack(padx=5, pady=5)
-        self.entry = ttk.Entry(self)
+        self.entry = ttk.Entry(self, validate="key", validatecommand=vcmd)
         self.entry.pack(padx=5, pady=5)
         button_frame = tk.Frame(self)
         button_frame.pack(pady=5)
@@ -500,15 +491,6 @@ def update_count(operation):
             update_treeview()
             update_log_view()    
 
-            # Adjust item counts
-            for row in item_sheet.iter_rows(min_row=2):
-                if row[0].value == selected_item:
-                    row[1].value = row[2].value or 0
-                    if operation == 'add':
-                        row[2].value = (row[2].value or 0) + input_value
-                    elif operation == 'subtract':
-                        row[2].value = max((row[2].value or 0) - input_value, 0)
-
             # Log the change for items not requiring SAN
             if not san_required:
                 log_change(selected_item, operation, input_value, "", timestamp_sheet)
@@ -553,4 +535,3 @@ root.after(100, update_treeview)
 update_log_view()
 
 root.mainloop()
-

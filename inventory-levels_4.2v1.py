@@ -50,7 +50,7 @@ if not os.path.exists(plots_folder):
 current_datetime = datetime.now().strftime('%d.%m.%y-%H.%M.%S')
 
 # Construct the full file path for saving the plot
-file_name = os.path.join(plots_folder, f'4.2_inventory_levels_{current_datetime}.png')
+file_name = os.path.join(plots_folder, f'4.2_Inventory_Levels_{current_datetime}.png')
 
 # Save and show the plot
 plt.savefig(file_name)
