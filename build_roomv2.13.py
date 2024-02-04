@@ -1,5 +1,5 @@
 # Reverted from v2.11 to v2.7 to overcome some bugs with LastCount & NewCount not updating correctly.
-# Added back the Serial #, ServiceNow #, Notes functionality
+# Added back the Serial #, ServiceNow # functionality
 # Added back the Headsets Log option in the  Data dropdown
 # Created new SANs Log option in the Data dropdown
 
@@ -55,7 +55,7 @@ def view_headsets_log():
     log_window.geometry("600x400")
 
     # Create a Treeview widget to display the log
-    columns = ("Serial #", "ServiceNow #", "Notes")
+    columns = ("Serial #", "ServiceNow #")
     log_tree = ttk.Treeview(log_window, columns=columns, show="headings")
     for col in columns:
         log_tree.heading(col, text=col)
@@ -110,8 +110,8 @@ plots_menu = tk.Menu(menu_bar, tearoff=0)
 plots_menu.add_command(label="Basement 4.2 Inventory", command=run_inventory_script)
 plots_menu.add_command(label="Build Room Inventory", command=run_build_room_inventory_script)
 plots_menu.add_command(label="Combined Inventory", command=run_combined_rooms_inventory_script)
-plots_menu.add_command(label="View All SANs Log", command=view_all_sans_log)
-plots_menu.add_command(label="View Headsets Log", command=view_headsets_log)
+plots_menu.add_command(label="SANs In Stock", command=view_all_sans_log)
+plots_menu.add_command(label="Headsets In Stock", command=view_headsets_log)
 menu_bar.add_cascade(label="Data", menu=plots_menu)
 root.config(menu=menu_bar)
 
@@ -282,7 +282,7 @@ def serial_number_input():
         if len(serial_num) == 6 and serial_num.isalnum():
             return serial_num  # Valid input
         else:
-            tk.messagebox.showerror("Invalid Input", "Serial Number must be exactly 6 alphanumeric characters.")
+            tk.messagebox.showerror("Invalid Input", "Serial Number must be 6 characters.")
 
 class ServiceNowInputDialog(tk.Toplevel):
     def __init__(self, parent):
@@ -290,10 +290,6 @@ class ServiceNowInputDialog(tk.Toplevel):
         self.parent = parent
         self.result = None
         self.title("ServiceNow #")
-
-    def on_cancel(self):
-        self.result = None
-        self.destroy()
 
         # Dropdown menu for prefix selection
         self.prefix_var = tk.StringVar()
@@ -316,7 +312,7 @@ class ServiceNowInputDialog(tk.Toplevel):
             self.result = f"{prefix}{number}"
             self.destroy()
         else:
-            tk.messagebox.showerror("Error", "A ServiceNow ticket contains 6-8 numbers.", parent=self)
+            tk.messagebox.showerror("Error", "ServiceNow Number must be 7 digits long.", parent=self)
 
     def show(self):
         self.wm_deiconify()
@@ -326,13 +322,7 @@ class ServiceNowInputDialog(tk.Toplevel):
     
 def servicenow_number_input():
     dialog = ServiceNowInputDialog(root)
-    result = dialog.show()
-    return result
-
-# # Notes Input Dialog Function
-# def notes_input():
-#     notes = sd.askstring("Notes", "Enter notes (up to 100 characters):", parent=root, maxlengt=100)
-#     return notes  # Return notes text
+    return dialog.show()
 
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
@@ -347,12 +337,6 @@ def update_count(operation):
             if servicenow_number:
                 # Write the ServiceNow number to the 2nd column of the "headsets" sheet
                 headsets_sheet.cell(row=headsets_sheet.max_row, column=2, value=servicenow_number)
-            # else:
-            #     # If ServiceNow number input was cancelled, prompt for notes
-            #     notes = notes_input()
-            #     if notes:
-            #         # Write the notes to the 3rd column of the "headsets" sheet
-            #         headsets_sheet.cell(row=headsets_sheet.max_row, column=3, value=notes)
 
             workbook.save(workbook_path)
     
@@ -393,7 +377,7 @@ def update_count(operation):
                             log_change(selected_item, operation, 1, san_number, timestamp_sheet)
                             san_count += 1
                         else:
-                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the All SANs sheet: {san_number}", parent=root)
+                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the spreadsheet: {san_number}", parent=root)
 
             # Adjust item counts
             for row in item_sheet.iter_rows(min_row=2):
