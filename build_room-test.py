@@ -44,6 +44,57 @@ def run_combined_rooms_inventory_script():
     else:
         tk.messagebox.showerror("Error", "The script 'inventory-levels_combinedv1.py' does not exist in the directory.")
 
+def view_headsets_log():
+    log_window = tk.Toplevel(root)
+    log_window.title("Headsets Log")
+    log_window.geometry("600x400")
+
+    # Create a Treeview widget to display the log
+    columns = ("Serial #", "ServiceNow #", "Notes")
+    log_tree = ttk.Treeview(log_window, columns=columns, show="headings")
+    for col in columns:
+        log_tree.heading(col, text=col)
+        log_tree.column(col, anchor="w")
+    log_tree.pack(expand=True, fill="both", padx=10, pady=10)
+
+    # Scrollbar for the Treeview
+    scrollbar = ttk.Scrollbar(log_window, orient="vertical", command=log_tree.yview)
+    scrollbar.pack(side="right", fill="y")
+    log_tree.configure(yscrollcommand=scrollbar.set)
+
+    # Load and display data from the "Headsets" sheet
+    if 'Headsets' in workbook.sheetnames:
+        headsets_sheet = workbook['Headsets']
+        for row in headsets_sheet.iter_rows(min_row=2, values_only=True):
+            log_tree.insert('', 'end', values=row)
+    else:
+        tk.messagebox.showinfo("Info", "Headsets log is empty.", parent=log_window)
+
+def view_all_sans_log():
+    log_window = tk.Toplevel(root)
+    log_window.title("All SANs Log")
+    log_window.geometry("600x400")
+
+    # Create a Treeview widget to display the log
+    columns = ("SAN Number", "Item", "Timestamp")
+    log_tree = ttk.Treeview(log_window, columns=columns, show="headings")
+    for col in columns:
+        log_tree.heading(col, text=col)
+        log_tree.column(col, anchor="w")
+    log_tree.pack(expand=True, fill="both", padx=10, pady=10)
+
+    # Scrollbar for the Treeview
+    scrollbar = ttk.Scrollbar(log_window, orient="vertical", command=log_tree.yview)
+    scrollbar.pack(side="right", fill="y")
+    log_tree.configure(yscrollcommand=scrollbar.set)
+
+    # Load and display data from the "All SANs" sheet
+    if 'All SANs' in workbook.sheetnames:
+        all_sans_sheet = workbook['All SANs']
+        for row in all_sans_sheet.iter_rows(min_row=2, values_only=True):
+            log_tree.insert('', 'end', values=row)
+    else:
+        tk.messagebox.showinfo("Info", "All SANs log is empty.", parent=log_window)
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
@@ -54,6 +105,8 @@ plots_menu = tk.Menu(menu_bar, tearoff=0)
 plots_menu.add_command(label="Basement 4.2 Inventory", command=run_inventory_script)
 plots_menu.add_command(label="Build Room Inventory", command=run_build_room_inventory_script)
 plots_menu.add_command(label="Combined Inventory", command=run_combined_rooms_inventory_script)
+plots_menu.add_command(label="View All SANs Log", command=view_all_sans_log)
+plots_menu.add_command(label="View Headsets Log", command=view_headsets_log)
 menu_bar.add_cascade(label="Data", menu=plots_menu)
 root.config(menu=menu_bar)
 
