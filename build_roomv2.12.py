@@ -1,6 +1,11 @@
-# Build Room\build_roomv2.8.py
+# Reverted from v2.11 to v2.7 to overcome some bugs with LastCount & NewCount not updating correctly.
+# Added back the Serial #, ServiceNow #, Notes functionality
+# Added back the Headsets Log option in the  Data dropdown
+# Created new SANs Log option in the Data dropdown
+
+# Build Room\build_roomv2.12.py
 # Author: Macdara O Murchu
-# 16.01.24
+# 04.02.24
 
 import logging.config
 from pathlib import Path
@@ -141,7 +146,6 @@ style.configure("Treeview", font=('Helvetica', 12))
 
 vcmd = (root.register(lambda P: P.isdigit() or P == ""), '%P')
 
-
 class SANInputDialog(tk.Toplevel):
     def __init__(self, parent, title=None):
         super().__init__(parent)
@@ -177,7 +181,6 @@ class SANInputDialog(tk.Toplevel):
         self.result = None
         self.destroy()
 
-
 def is_san_unique(san_number):
     # Adjust the search to account for the 'SAN' prefix properly
     search_string = "SAN" + san_number if not san_number.startswith("SAN") else san_number
@@ -185,11 +188,9 @@ def is_san_unique(san_number):
     print(f"Checking SAN {search_string}: Unique - {unique}")  # Debug print
     return unique
 
-
 def show_san_input():
     dialog = SANInputDialog(root, "Enter SAN Number")
     return dialog.result
-
 
 def open_spreadsheet():
     try:
@@ -220,7 +221,6 @@ entry_value.pack(side='left', padx=3)
 button_add = ctk.CTkButton(entry_frame, text="+", command=lambda: update_count('add'), width=button_width, font=("Helvetica", 14), corner_radius=3)
 button_add.pack(side='left', padx=3)
 
-
 def update_treeview():
     tree.delete(*tree.get_children())
     workbook = load_workbook(workbook_path)
@@ -237,7 +237,6 @@ def update_treeview():
             tree.tag_configure('evenrow', background='white')
             row_count += 1
 
-
 def log_change(item, action, count=1, san_number="", timestamp_sheet=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     action_text = f"{action} {count}" if san_number == "" else f"{action} 1"
@@ -253,13 +252,11 @@ def log_change(item, action, count=1, san_number="", timestamp_sheet=None):
         logging.error(f"Failed to log change: {e}")
         tk.messagebox.showerror("Error", f"Failed to log change: {e}")
 
-
 def switch_sheets(sheet_type):
     global current_sheets
     current_sheets = sheets[sheet_type]
     update_treeview()
     update_log_view()
-
 
 def update_log_view():
     if 'log_view' in globals():
@@ -332,7 +329,6 @@ def notes_input():
     notes = sd.askstring("Notes", "Enter notes (up to 100 characters):", parent=root, maxlengt=100)
     return notes  # Return notes text
 
-
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
     if selected_item and "Headset" in selected_item:
@@ -371,7 +367,6 @@ def update_count(operation):
                         return
                     san_number = "SAN" + san_number if not san_number.startswith("SAN") else san_number
 
-
                     if operation == 'add':
                         if is_san_unique(san_number):
                             print(f"Adding unique SAN {san_number}")  # Debug print
@@ -387,7 +382,6 @@ def update_count(operation):
                             if row[0].value == san_number:
                                 row_to_delete = row[0].row
                                 break
-
 
                         if row_to_delete:
                             all_sans_sheet.delete_rows(row_to_delete)
@@ -412,7 +406,6 @@ def update_count(operation):
             workbook.save(workbook_path)
             update_treeview()
             update_log_view()
-
 
 columns = ("Item", "LastCount", "NewCount")
 tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode='browse', style="Treeview")
@@ -442,4 +435,3 @@ root.after(100, update_treeview)
 update_log_view()
 
 root.mainloop()
-
