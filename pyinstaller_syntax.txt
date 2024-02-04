@@ -1,0 +1,1 @@
+pyinstaller --add-data "EUC_Perth_Assets.xlsx;." --add-data "inventory-levels_4.2v1.py;." --add-data "inventory-levels_BRv1.py;." --add-data "inventory-levels_combinedv1.1.py;." --add-data "Plots;Plots" build_roomv2.11.p
