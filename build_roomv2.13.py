@@ -51,7 +51,7 @@ def run_combined_rooms_inventory_script():
 
 def view_headsets_log():
     log_window = tk.Toplevel(root)
-    log_window.title("Headsets Log")
+    log_window.title("Headsets In Stock")
     log_window.geometry("600x400")
 
     # Create a Treeview widget to display the log
@@ -77,7 +77,7 @@ def view_headsets_log():
 
 def view_all_sans_log():
     log_window = tk.Toplevel(root)
-    log_window.title("All SANs Log")
+    log_window.title("SANs In Stock")
     log_window.geometry("600x400")
 
     # Create a Treeview widget to display the log
@@ -189,7 +189,7 @@ def is_san_unique(san_number):
     return unique
 
 def show_san_input():
-    dialog = SANInputDialog(root, "Enter SAN Number")
+    dialog = SANInputDialog(root, "SAN #")
     return dialog.result
 
 def open_spreadsheet():
@@ -276,7 +276,7 @@ def update_log_view():
 # Serial Number Input Dialog Function
 def serial_number_input():
     while True:
-        serial_num = sd.askstring("Serial Number", "Enter Serial Number (6 alphanumeric characters):", parent=root)
+        serial_num = sd.askstring("Serial Number", "Enter Serial Number:", parent=root)
         if serial_num is None:  # User pressed cancel
             return None
         if len(serial_num) == 6 and serial_num.isalnum():
@@ -312,7 +312,7 @@ class ServiceNowInputDialog(tk.Toplevel):
             self.result = f"{prefix}{number}"
             self.destroy()
         else:
-            tk.messagebox.showerror("Error", "ServiceNow Number must be 7 digits long.", parent=self)
+            tk.messagebox.showerror("Error", "Please enter a 7-digit number.", parent=self)
 
     def show(self):
         self.wm_deiconify()
@@ -377,7 +377,7 @@ def update_count(operation):
                             log_change(selected_item, operation, 1, san_number, timestamp_sheet)
                             san_count += 1
                         else:
-                            tk.messagebox.showerror("Error", f"That SAN number does not exist in the spreadsheet: {san_number}", parent=root)
+                            tk.messagebox.showerror("Error", f"The following SAN number is not in the inventory: {san_number}", parent=root)
 
             # Adjust item counts
             for row in item_sheet.iter_rows(min_row=2):

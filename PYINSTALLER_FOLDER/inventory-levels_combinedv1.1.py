@@ -50,7 +50,7 @@ plt.ylabel('Item', fontsize=12)
 plt.xlabel('Volume', fontsize=12)
 plt.xlim(0, 120)
 current_date = datetime.now().strftime('%d-%m-%Y')
-plt.title(f'Combined - 4.2 & Build Room Inventory Levels (Perth) - {current_date}', fontsize=14)
+plt.title(f'Inventory Levels (Perth) - {current_date}', fontsize=14)
 plt.legend()
 plt.tight_layout()
 
