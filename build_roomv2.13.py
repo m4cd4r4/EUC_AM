@@ -103,7 +103,7 @@ def view_all_sans_log():
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("500x650")
+root.geometry("650x650")
 
 menu_bar = tk.Menu(root)
 plots_menu = tk.Menu(menu_bar, tearoff=0)
@@ -329,14 +329,16 @@ def update_count(operation):
     if selected_item and "Headset" in selected_item:
         serial_number = serial_number_input()
         if serial_number:
-            # Write the serial number to the first column of the "headsets" sheet
-            headsets_sheet = workbook['Headsets']  # Assuming 'headsets' sheet exists
-            headsets_sheet.append([serial_number])
-
             servicenow_number = servicenow_number_input()
-            if servicenow_number:
-                # Write the ServiceNow number to the 2nd column of the "headsets" sheet
-                headsets_sheet.cell(row=headsets_sheet.max_row, column=2, value=servicenow_number)
+            if servicenow_number:  # Check if user provided a ServiceNow number
+                # Proceed with original functionality as the user did not cancel the dialog
+                headsets_sheet = workbook['Headsets']  # Assuming 'headsets' sheet exists
+                headsets_sheet.append([serial_number, servicenow_number])  # Now appending both serial and ServiceNow numbers together
+                workbook.save(workbook_path)
+            else:
+                # Here we do not proceed with any changes since the servicenow dialog was cancelled
+                tk.messagebox.showinfo("Operation Cancelled", "The operation was cancelled. No changes have been made.")
+                return  # Stop the function execution as the servicenow dialog was cancelled
 
             workbook.save(workbook_path)
     
