@@ -49,7 +49,7 @@ def run_combined_rooms_inventory_script():
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("500x650")
+root.geometry("725x750")
 
 menu_bar = tk.Menu(root)
 plots_menu = tk.Menu(menu_bar, tearoff=0)
@@ -484,7 +484,7 @@ tree.pack(expand=True, fill="both", padx=3, pady=3)
 log_view_frame = ctk.CTkFrame(root)
 log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
 
-log_view_columns = ("Timestamp", "Item", "Action", "SAN Number")
+log_view_columns = ("Timestamp", "Item", "Action", "SAN Number", "Serial Number", "ServiceNow Number")
 log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=8)
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='w')

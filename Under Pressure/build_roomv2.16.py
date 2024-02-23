@@ -1,6 +1,21 @@
-# Build Room\build_roomv2.18.py
+# Build Room\build_roomv2.21.py
 # Author: Macdara O Murchu
-# 20.02.24
+# 21.02.24
+
+# Changes:
+# 1 - If Serial dialog is not completed, do not update the spreadsheet; Cancel the operation.
+# 2 - Manually added Timestamp column to the Serial log view, and centered the text in the columns
+# 2.1 - If the ServiceNow dialog is cancelled, present a "Notes" text input dialog that says "Please log a note". This input will get saved to column C in the "Headsets" sheet.
+# 2.2 - Add "Serial #" & "ServiceNow #" Columns to the log_view
+# 2.3 - Notes Input Dialog and Logic for Cancelled ServiceNow Input
+# 2.4 - Write a timestamp of the Headset addition to column "D" of the Headsets sheet
+# 2.5 - Rearrange the column order in the Headsets log view, particularly adding the "Notes" column before the "Timestamp" and shifting existing data one column to the right
+
+# 3 - Update the log_change function to write the serial number info to the timestamps sheets
+# TO-DO# 3.2 - The columns in the logview are in the wrong order, and may not be working correctly
+# TO-DO Headsets serial # & servicenow # not writing to the timestamps sheets
+
+
 
 import logging.config
 from pathlib import Path
@@ -47,10 +62,10 @@ def run_combined_rooms_inventory_script():
 def view_headsets_log():
     log_window = tk.Toplevel(root)
     log_window.title("Headsets In Stock")
-    log_window.geometry("625x750")
+    log_window.geometry("800x800")
 
-    # Create a Treeview widget to display the log
-    columns = ("Serial #", "ServiceNow #", "Notes")
+    # Adjust the columns for the Treeview widget
+    columns = ("Serial #", "ServiceNow #", "Notes", "Timestamp")
     log_tree = ttk.Treeview(log_window, columns=columns, show="headings")
     for col in columns:
         log_tree.heading(col, text=col)
@@ -62,25 +77,28 @@ def view_headsets_log():
     scrollbar.pack(side="right", fill="y")
     log_tree.configure(yscrollcommand=scrollbar.set)
 
-    # Load and display data from the "Headsets" sheet
+    # Adjust the loop for displaying data to accommodate the newly added "Notes" column and the reordering
     if 'Headsets' in workbook.sheetnames:
         headsets_sheet = workbook['Headsets']
         for row in headsets_sheet.iter_rows(min_row=2, values_only=True):
-            log_tree.insert('', 'end', values=row)
+            # Construct the row value maintaining the new column order
+            # Ensure the row tuple has a correct mapping according to the new columns order
+            display_row = (row[0], row[1], row[2], row[3]) if len(row) == 4 else (row[0], row[1], "", row[2]) if len(row) == 3 else ("", "", "", "")
+            log_tree.insert('', 'end', values=display_row)
     else:
         tk.messagebox.showinfo("Info", "Headsets log is empty.", parent=log_window)
 
 def view_all_sans_log():
     log_window = tk.Toplevel(root)
     log_window.title("SANs In Stock")
-    log_window.geometry("625x750")
+    log_window.geometry("800x800")
 
     # Create a Treeview widget to display the log
     columns = ("SAN Number", "Item", "Timestamp")
     log_tree = ttk.Treeview(log_window, columns=columns, show="headings")
     for col in columns:
         log_tree.heading(col, text=col)
-        log_tree.column(col, anchor="center")
+        log_tree.column(col, anchor="w")
     log_tree.pack(expand=True, fill="both", padx=10, pady=10)
 
     # Scrollbar for the Treeview
@@ -98,7 +116,7 @@ def view_all_sans_log():
 
 root = ctk.CTk()
 root.title("Perth EUC Assets")
-root.geometry("750x750")
+root.geometry("675x675")
 
 menu_bar = tk.Menu(root)
 plots_menu = tk.Menu(menu_bar, tearoff=0)
@@ -176,38 +194,6 @@ class SANInputDialog(tk.Toplevel):
         self.result = None
         self.destroy()
 
-class ServiceNowInputDialog(tk.Toplevel):
-    def __init__(self, parent, title=None):
-        super().__init__(parent)
-        self.transient(parent)
-        self.title(title)
-        self.parent = parent
-        self.result = None
-        self.create_widgets()
-        self.grab_set()
-        self.geometry(f"+{parent.winfo_rootx() + parent.winfo_width() // 2 - 100}+{parent.winfo_rooty() + parent.winfo_height() // 2 - 50}")
-        self.wait_window(self)
-
-    def create_widgets(self):
-        # Dropdown menu for prefix selection
-        self.prefix_var = tk.StringVar(self, value="TASK")  # Set default value to "TASK"
-        self.prefix_dropdown = tk.OptionMenu(self, self.prefix_var, "TASK", "RITM")
-        self.prefix_dropdown.pack(padx=10, pady=5)
-
-        # Entry for ServiceNow number
-        self.number_entry = tk.Entry(self)
-        self.number_entry.pack(padx=10, pady=5)
-
-        # Submit button
-        submit_button = tk.Button(self, text="Submit", command=self.on_submit)
-        submit_button.pack(pady=5)
-
-    def on_submit(self):
-        prefix = self.prefix_var.get()
-        number = self.number_entry.get()
-        self.result = f"{prefix} {number}"
-        self.destroy()
-
 def is_san_unique(san_number):
     # Adjust the search to account for the 'SAN' prefix properly
     search_string = "SAN" + san_number if not san_number.startswith("SAN") else san_number
@@ -264,36 +250,25 @@ def update_treeview():
             tree.tag_configure('evenrow', background='white')
             row_count += 1
 
-def log_change(item, action, count=1, san_numbers=[], serial_numbers=[], servicenow_numbers=[], timestamp_sheet=None):
+# Modify the log_change function to accept new parameters
+def log_change(item, action, count=1, san_number="", timestamp_sheet=None, 
+               serial_number=None, service_now_number=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    action_text = f"{action} {count}"
+    row_data = [timestamp, item, action_text, san_number, serial_number, service_now_number]
     
-    # Handling operations logging for SAN Numbers
-    for san_number in san_numbers:
-        action_text = f"{action} 1 SAN Device"
-        try:
-            timestamp_sheet.append([timestamp, item, action_text, san_number, "", servicenow_numbers[0] if servicenow_numbers else ""])
-        except Exception as e:
-            logging.error(f"Failed to log SAN device operation: {e}")
-    
-    # Handling operations logging for Serial Numbers (Headsets)
-    for serial_number in serial_numbers:
-        action_text = f"{action} 1 Headset"
-        try:
-            timestamp_sheet.append([timestamp, item, action_text, "", serial_number, servicenow_numbers[0] if servicenow_numbers else ""])
-        except Exception as e:
-            logging.error(f"Failed to log Headset operation: {e}")
-    
-    # Handling operations for items without specific identifiers (Single ServiceNow prompt for multiple items if needed)
-    if not san_numbers and not serial_numbers:
-        action_text = f"{action} {count}"
-        try:
-            timestamp_sheet.append([timestamp, item, action_text, "", "", servicenow_numbers[0] if servicenow_numbers else ""])
-        except Exception as e:
-            logging.error(f"Failed to log operation: {e}")
-            
-    workbook.save(workbook_path)
-    update_log_view()
-    logging.info(f"Logged change: Time: {timestamp}, Item: {item}, Action: {action}")
+    try:
+        if timestamp_sheet is not None:
+            timestamp_sheet.append(row_data)
+            workbook.save(workbook_path)
+            update_log_view()
+            logging.info(f"Logged change: Time: {timestamp}, Item: {item}, Action: {action_text}, SAN: {san_number}, Serial #: {serial_number}, ServiceNow #: {service_now_number}")
+        else:
+            logging.error("No timestamp sheet provided for logging.")
+    except Exception as e:
+        logging.error(f"Failed to log change: {e}", exc_info=True)
+        tk.messagebox.showerror("Error", f"Failed to log change: {e}")
+
 def switch_sheets(sheet_type):
     global current_sheets
     current_sheets = sheets[sheet_type]
@@ -305,39 +280,34 @@ def update_log_view():
         log_view.delete(*log_view.get_children())
         log_sheet = workbook[current_sheets[1]]
         all_rows = list(log_sheet.iter_rows(min_row=2, values_only=True))
-        sorted_rows = sorted(
-            all_rows, 
-            key=lambda r: datetime.strptime(r[0], "%Y-%m-%d %H:%M:%S") if r[0] else datetime.min, 
-            reverse=True
-        )
-        
-        row_count = 0  # Initialize row_count here
+        # Adjust the sorting to use the first column (timestamp)
+        sorted_rows = sorted(all_rows, key=lambda r: datetime.strptime(r[0], "%Y-%m-%d %H:%M:%S") if r[0] else datetime.min, reverse=True)
+        row_count = 0
         for row in sorted_rows:
             if row[0] is not None:
                 log_view.insert('', 'end', values=row, tags=('oddrow' if row_count % 2 == 1 else 'evenrow'))
                 log_view.tag_configure('oddrow', background='#f0f0f0')
                 log_view.tag_configure('evenrow', background='white')
-                row_count += 1  # Increment row_count for each row processed
+                row_count += 1
 
 # Serial Number Input Dialog Function
-# Function to prompt for a Serial Number
 def serial_number_input():
-    serial_number = sd.askstring("Serial Number", "Enter Serial Number:", parent=root)
-    # Validate the serial number
-    if serial_number and len(serial_number) == 6 and serial_number.isalnum():
-        return serial_number  # Return the valid Serial Number
-    else:
-        tk.messagebox.showerror("Error", "Invalid Serial Number. Please enter 6 alphanumeric characters.")
-        return None  # Return None if invalid or no input
+    while True:
+        serial_num = sd.askstring("Serial Number", "Enter Serial Number:", parent=root)
+        if serial_num is None:  # User pressed cancel
+            return None
+        serial_num = serial_num.upper() 
+        if len(serial_num) == 6 and serial_num.isalnum():
+            return serial_num  # Valid input
+        else:
+            tk.messagebox.showerror("Invalid Input", "Serial Number must be 6 characters.")
 
-# Function to prompt for a ServiceNow Number
-def servicenow_number_input():
-    servicenow_number = sd.askstring("ServiceNow Number", "Enter ServiceNow Number:", parent=root)
-    # No extensive validation here for simplicity, customization is possible based on given requirements or format
-    if servicenow_number:
-        return servicenow_number  # Return the ServiceNow Number
-    else:
-        return None  # Return None if no input
+class ServiceNowInputDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.result = None
+        self.title("ServiceNow #")
 
         # Dropdown menu for prefix selection
         self.prefix_var = tk.StringVar()
@@ -375,90 +345,97 @@ def servicenow_number_input():
 def update_count(operation):
     selected_item = tree.item(tree.focus())['values'][0] if tree.focus() else None
     if selected_item:
-        san_numbers, serial_numbers, servicenow_numbers = [], [], []
         input_value = entry_value.get()
         if input_value.isdigit():
             input_value = int(input_value)
-            # Prompting for SAN, Serial, ServiceNow numbers
-            if "Headset" in selected_item:
-                for _ in range(input_value):
-                    serial_number = serial_number_input()
-                    if serial_number is None:  # User cancelled the operation
-                        return
-                    serial_numbers.append(serial_number)
-                servicenow_number = servicenow_number_input()
-                if servicenow_number is not None:
-                    servicenow_numbers.append(servicenow_number)
-            elif any(generation in selected_item for generation in ["G8", "G9", "G10"]):
-                for _ in range(input_value):
-                    san_number = show_san_input()
-                    if san_number is None:  # User cancelled the operation
-                        return
-                    san_numbers.append(san_number)
-                servicenow_number = servicenow_number_input()
-                if servicenow_number is not None:
-                    servicenow_numbers.append(servicenow_number)
-            else:
-                # Non-SAN and Non-Headset items, ServiceNow number is prompted once
-                servicenow_number = servicenow_number_input()
-                if servicenow_number is not None:
-                    servicenow_numbers.append(servicenow_number)
-                    
-            # Update item count and logging the operation
             item_sheet = workbook[current_sheets[0]]
             timestamp_sheet = workbook[current_sheets[1]]
-            for row in item_sheet.iter_rows(min_row=2):
-                if row[0].value == selected_item:
-                    row[1].value = row[2].value or 0  # Update LastCount
-                    # Update NewCount based on the operation
+            san_required = any(g in selected_item for g in ["G8", "G9", "G10"])
+            
+            if san_required:
+                san_count = 0
+                while san_count < input_value:
+                    san_number = show_san_input()
+                    if san_number is None:  # User cancelled the input
+                        break
+                    if not san_number.startswith("SAN"):
+                        san_number = "SAN" + san_number
+
                     if operation == 'add':
-                        row[2].value = (row[2].value or 0) + input_value
+                        if is_san_unique(san_number):
+                            all_sans_sheet.append([san_number, selected_item, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                            log_change(selected_item, operation, 1, san_number, timestamp_sheet=timestamp_sheet)
+                            san_count += 1
+                        else:
+                            tk.messagebox.showerror("Error", f"Duplicate or already used SAN number: {san_number}", parent=root)
                     elif operation == 'subtract':
-                        row[2].value = max((row[2].value or 0) - input_value, 0)
-                    workbook.save(workbook_path)
-                   
-            # Log the operations
-            log_change(selected_item, operation,
-                       count=input_value,
-                       san_numbers=san_numbers,
-                       serial_numbers=serial_numbers,
-                       servicenow_numbers=servicenow_numbers,
-                       timestamp_sheet=timestamp_sheet)
-                    
+                        row_to_delete = None
+                        for row in all_sans_sheet.iter_rows(min_row=2):
+                            if row[0].value == san_number:
+                                row_to_delete = row[0].row
+                                break
+
+                        if row_to_delete:
+                            all_sans_sheet.delete_rows(row_to_delete)
+                            log_change(selected_item, operation, 1, san_number, timestamp_sheet=timestamp_sheet)
+                            san_count += 1
+                        else:
+                            tk.messagebox.showerror("Error", f"The SAN number {san_number} is not in the inventory.", parent=root)
+
+            elif "Headset" in selected_item:
+                headset_count = 0
+                while headset_count < input_value:
+                    serial_number = serial_number_input()
+                    if serial_number:
+                        service_now_number = servicenow_number_input()
+                        if service_now_number:
+                            log_change(selected_item, operation, count=1, timestamp_sheet=timestamp_sheet,
+                                       san_number="", serial_number=serial_number, service_now_number=service_now_number)
+                            headset_count += 1
+                        else:
+                            break  # Stop if ServiceNow number input is canceled
+                    else:
+                        break  # Stop if Serial number input is canceled
+
+            else:  # Standard items not requiring a unique identifier
+                for row in item_sheet.iter_rows(min_row=2):
+                    if row[0].value == selected_item:
+                        last_count = row[2].value or 0
+                        if operation == 'add':
+                            new_count = last_count + input_value
+                        else:  # subtract
+                            new_count = max(last_count - input_value, 0)
+                        row[1].value = last_count  # Update Last count
+                        row[2].value = new_count   # Update New count
+                        log_change(selected_item, operation, count=input_value, timestamp_sheet=timestamp_sheet)
+                        break
+
+            # Save the workbook and refresh views
+            workbook.save(workbook_path)
             update_treeview()
             update_log_view()
-        else:
-            tk.messagebox.showerror("Invalid Input", "Please enter a numeric value for the count.")
-
 
 columns = ("Item", "LastCount", "NewCount")
 tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode='browse', style="Treeview")
 for col in columns:
-    tree.heading(col, text=col, anchor='center')
-    tree.column("Item", anchor="center", width=250, stretch=False)
-    tree.column("LastCount", anchor="center", width=175, stretch=False)
-    tree.column("NewCount", anchor="center", width=175, stretch=False)  # Ensure this line is correctly specifying "center"
+    tree.heading(col, text=col, anchor='w')
+    tree.column("Item", anchor='w', width=250, stretch=False) # Width of the "Item" column in the treeview. The other columns are default width.
+    tree.column("LastCount", anchor='w', width=175, stretch=False)
 tree.pack(expand=True, fill="both", padx=3, pady=3)
 
 log_view_frame = ctk.CTkFrame(root)
 log_view_frame.pack(side=tk.BOTTOM, fill='both', expand=True, padx=10, pady=10)
 
-log_view_columns = ("Timestamp", "Item", "Action", "SAN Number", "Serial #", "ServiceNow #")
-log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=12)
+log_view_columns = ("Timestamp", "Item", "Action", "SAN Number", "Serial #", "ServiceNow #", "Notes")
+log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=8)
 for col in log_view_columns:
     log_view.heading(col, text=col, anchor='center')
-# Now adjust width as needed after log_view has been instantiated
-# log_view.column("Timestamp", anchor='center', width=175)
-# log_view.column("Item", anchor='center', width=130)
-# log_view.column("Action", anchor='center', width=50)
-# log_view.column("SAN Number", anchor='center', width=70)
-# log_view.column("Serial #", anchor='center', width=70)
-# log_view.column("ServiceNow #", anchor='center', width=95)
-log_view = ttk.Treeview(log_view_frame, columns=log_view_columns, show="headings", style="Treeview", height=12)
-# for col in log_view_columns:
-#     log_view.heading(col, text=col, anchor='center')
-#     # Adjust width as needed
-#     log_view.column(col, anchor='center', width=11)
+    log_view.column("Timestamp", anchor='center', width=190, stretch=False)
+    log_view.column("Item", anchor='center', width=160, stretch=False)
+    log_view.column("Action", anchor='center', width=100, stretch=False)
+    log_view.column("SAN Number", anchor='center', width=100, stretch=False)
+    log_view.column("Serial #", anchor='center', width=100, stretch=False)
+    log_view.column("ServiceNow #", anchor='center', width=100, stretch=False)
 
 scrollbar_log = ttk.Scrollbar(log_view_frame, orient="vertical", command=log_view.yview)
 scrollbar_log.pack(side='right', fill='y')
